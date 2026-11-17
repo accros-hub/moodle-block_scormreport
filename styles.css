@@ -1,0 +1,426 @@
+/* =========================================================
+   block_scormreport — Styles
+   ========================================================= */
+
+/* ── Side block ── */
+.block_scormreport .block-scormreport-content {
+    font-size: 0.9rem;
+    line-height: 1.5;
+}
+
+/* ── Summary cards ── */
+.block_scormreport .scorm-summary-cards {
+    display: flex;
+    gap: 1rem;
+    flex-wrap: wrap;
+}
+
+.block_scormreport .summary-card {
+    flex: 1;
+    min-width: 120px;
+    background: linear-gradient(135deg, #0073aa, #005a87);
+    color: #fff;
+    border-radius: 8px;
+    padding: 1rem 1.2rem;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+}
+
+.block_scormreport .summary-card .card-value {
+    font-size: 2rem;
+    font-weight: 700;
+    line-height: 1;
+}
+
+.block_scormreport .summary-card .card-label {
+    font-size: 0.78rem;
+    opacity: 0.85;
+    margin-top: 0.3rem;
+    text-align: center;
+}
+
+/* ── Filters ── */
+.block_scormreport .scorm-filters .filter-row {
+    display: flex;
+    gap: 1rem;
+    align-items: flex-end;
+    flex-wrap: wrap;
+}
+
+.block_scormreport .scorm-filters label {
+    display: flex;
+    flex-direction: column;
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: #444;
+    gap: 0.25rem;
+    min-width: 200px;
+}
+
+/* ── Table ── */
+.block_scormreport .scorm-report-table {
+    border-collapse: separate;
+    border-spacing: 0;
+}
+
+.block_scormreport .scorm-report-table thead th {
+    background-color: #002f4b;
+    color: #fff;
+    border: none;
+    white-space: normal;
+    word-break: normal;
+    overflow-wrap: break-word;
+    font-size: 0.82rem;
+    line-height: 1.15;
+    text-align: center;
+    vertical-align: middle;
+    padding: 0.5rem 0.5rem;
+    border-right: 1px solid rgba(255,255,255,0.2);
+}
+/* Let the table size columns to their content, not stretch to full width. */
+.block_scormreport .scorm-report-table {
+    width: auto;
+}
+/* Student view: the detail table uses the full width, like the cards and bars above. */
+.block_scormreport .scorm-report-table.scorm-table-full {
+    width: 100%;
+}
+/* Keep data cells on one line so columns stay compact. */
+.block_scormreport .scorm-report-table tbody td {
+    white-space: nowrap;
+}
+
+.block_scormreport .scorm-report-table thead th:last-child {
+    border-right: none;
+}
+
+.block_scormreport .scorm-report-table tbody tr:hover {
+    background-color: #f0f7ff;
+}
+
+.block_scormreport .scorm-report-table tbody td {
+    vertical-align: middle;
+    font-size: 0.875rem;
+    border-right: 1px solid #dee2e6;
+    border-bottom: 1px solid #dee2e6;
+    padding: 0.5rem 0.75rem;
+}
+
+.block_scormreport .scorm-report-table tbody td:last-child {
+    border-right: none;
+}
+
+.block_scormreport .scorm-report-table tbody tr:last-child td {
+    border-bottom: none;
+}
+
+/* ── Progress bars ── */
+.block_scormreport .progress-wrap {
+    position: relative;
+    background: #e9ecef;
+    border-radius: 4px;
+    height: 22px;
+    min-width: 80px;
+    overflow: hidden;
+}
+
+.block_scormreport .progress-wrap span {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 0.78rem;
+    font-weight: 700;
+    color: #333;
+    z-index: 1;
+    white-space: nowrap;
+}
+
+.block_scormreport .progress-bar-custom {
+    position: absolute;
+    top: 0;
+    left: 0;
+    height: 100%;
+    background-color: #0073aa;
+    opacity: 0.35;
+    transition: width 0.4s ease;
+    border-radius: 4px;
+}
+
+.block_scormreport .progress-bar-custom.bar-green {
+    background-color: #28a745;
+}
+
+/* ── Status badges ── */
+.block_scormreport .scorm-report-table .badge {
+    padding: 0.35em 0.65em;
+    border-radius: 4px;
+    font-size: 0.78rem;
+    font-weight: 600;
+}
+
+.block_scormreport .scorm-report-table .badge-success { background-color: #28a745; color: #fff; }
+.block_scormreport .scorm-report-table .badge-danger { background-color: #dc3545; color: #fff; }
+.block_scormreport .scorm-report-table .badge-warning { background-color: #ffc107; color: #333; }
+.block_scormreport .scorm-report-table .badge-secondary { background-color: #6c757d; color: #fff; }
+.block_scormreport .scorm-report-table .badge-info { background-color: #0073aa; color: #fff; }
+
+/* ── Responsive ── */
+@media (max-width: 768px) {
+.block_scormreport .scorm-summary-cards { flex-direction: column; }
+.block_scormreport .scorm-filters .filter-row { flex-direction: column; }
+.block_scormreport .scorm-report-table { font-size: 0.78rem; }
+}
+
+/* ── Sortable columns ── */
+.block_scormreport .sortable-col {
+    cursor: pointer;
+    user-select: none;
+    white-space: nowrap;
+}
+
+.block_scormreport .sortable-col:hover {
+    background-color: #005a87 !important;
+}
+
+.block_scormreport .sortable-col .sort-icon {
+    font-size: 0.75rem;
+    opacity: 0.7;
+    margin-left: 4px;
+}
+
+.block_scormreport .sortable-col.sort-asc .sort-icon,
+.block_scormreport .sortable-col.sort-desc .sort-icon {
+    opacity: 1;
+    color: #fff;
+}
+
+/* ── Row status side markers ── */
+.block_scormreport .scorm-report-table tbody tr.row-passed td:first-child {
+    border-left: 4px solid #28a745;
+}
+.block_scormreport .scorm-report-table tbody tr.row-failed td:first-child {
+    border-left: 4px solid #dc3545;
+}
+.block_scormreport .scorm-report-table tbody tr.row-incomplete td:first-child {
+    border-left: 4px solid #ffc107;
+}
+.block_scormreport .scorm-report-table tbody tr.row-notattempted td:first-child {
+    border-left: 4px solid #adb5bd;
+}
+
+/* ── Pie chart (student) ── */
+.block_scormreport .scorm-chart-wrap {
+    display: flex;
+    align-items: center;
+    gap: 2rem;
+    margin-bottom: 1.5rem;
+    flex-wrap: wrap;
+}
+
+.block_scormreport .scorm-donut-wrap {
+    position: relative;
+    width: 160px;
+    height: 160px;
+    flex-shrink: 0;
+}
+
+.block_scormreport .scorm-donut-wrap canvas {
+    width: 160px !important;
+    height: 160px !important;
+}
+
+.block_scormreport .scorm-donut-center {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    text-align: center;
+    pointer-events: none;
+}
+
+.block_scormreport .scorm-donut-center .donut-pct {
+    font-size: 1.6rem;
+    font-weight: 700;
+    color: #0073aa;
+    line-height: 1;
+}
+
+.block_scormreport .scorm-donut-center .donut-label {
+    font-size: 0.7rem;
+    color: #666;
+}
+
+.block_scormreport .scorm-chart-legend {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.block_scormreport .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.85rem;
+}
+
+.block_scormreport .legend-dot {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    flex-shrink: 0;
+}
+
+/* ── Bar chart (teacher) ── */
+.block_scormreport .scorm-bars-wrap {
+    margin-bottom: 1.5rem;
+    background: #f8f9fa;
+    border-radius: 8px;
+    padding: 1rem 1.5rem;
+}
+
+.block_scormreport .scorm-bars-wrap h6 {
+    font-size: 0.85rem;
+    color: #555;
+    margin-bottom: 0.75rem;
+    font-weight: 600;
+}
+
+.block_scormreport .student-bar-row {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin-bottom: 0.4rem;
+    font-size: 0.8rem;
+}
+
+.block_scormreport .student-bar-name {
+    width: 140px;
+    flex-shrink: 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    color: #444;
+}
+
+.block_scormreport .student-bar-track {
+    flex: 1;
+    background: #e9ecef;
+    border-radius: 4px;
+    height: 14px;
+    position: relative;
+    overflow: hidden;
+}
+
+.block_scormreport .student-bar-fill {
+    height: 100%;
+    border-radius: 4px;
+    transition: width 0.5s ease;
+}
+
+.block_scormreport .student-bar-fill.fill-high { background: #28a745; }
+.block_scormreport .student-bar-fill.fill-medium { background: #ffc107; }
+.block_scormreport .student-bar-fill.fill-low { background: #dc3545; }
+
+.block_scormreport .student-bar-pct {
+    width: 40px;
+    text-align: right;
+    font-weight: 600;
+    color: #444;
+    flex-shrink: 0;
+}
+
+/* ── Dynamic report header ── */
+.block_scormreport .scorm-report-header {
+    border-bottom: 3px solid #0073aa;
+    padding-bottom: 0.75rem;
+}
+
+.block_scormreport .scorm-report-title {
+    font-size: 1.8rem;
+    font-weight: 700;
+    color: #0073aa;
+    margin-bottom: 0.25rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.block_scormreport .scorm-report-meta {
+    font-size: 1rem;
+    color: #555;
+    font-weight: 500;
+}
+
+/* ── Classes extracted from inline styles ──────────────────────────── */
+
+/* Inner SCO tables (expandable rows) */
+.block_scormreport .scorm-report-table .sco-inner-table { font-size: 0.82rem; margin: 0; }
+.block_scormreport .scorm-report-table .sco-header-row { background: #0073aa; }
+.block_scormreport .scorm-report-table .sco-header-row th { background: #0073aa; color: #fff; }
+.block_scormreport .scorm-report-table .sco-detail-cell { padding: 0; background: #f8f9fa; }
+.block_scormreport .scorm-report-table .sco-subsco-cell { padding: 0; padding-left: 30px; background: #f0f4f8; }
+.block_scormreport .scorm-report-table .sco-cell { padding: 4px 8px; }
+.block_scormreport .scorm-report-table .sco-cell-center { padding: 4px 8px; text-align: center; }
+.block_scormreport .scorm-report-table .sco-cell-name { padding: 4px 12px; }
+.block_scormreport .scorm-report-table .sco-cell-name-wide { padding: 4px 12px; width: 30%; }
+.block_scormreport .scorm-report-table .sco-cell-mono { text-align: center; font-family: monospace; }
+.block_scormreport .scorm-report-table .sco-subsco-row td { padding: 2px 8px; }
+
+/* Badges and labels */
+.block_scormreport .scorm-report-table .badge-apt { font-size: 0.85rem; }
+.block_scormreport .scorm-report-table .badge-multisco { font-size: 0.7rem; background: #0073aa; }
+.block_scormreport .scorm-report-table .btn-toggle { font-size: 0.75rem; padding: 1px 6px; }
+.block_scormreport .scorm-report-table .btn-toggle-sub { font-size: 0.7rem; padding: 0px 4px; }
+.block_scormreport .scorm-report-table .text-muted-sub { color: #666; font-size: 0.85rem; }
+
+/* Filters */
+.block_scormreport .scorm-report-table .filter-label { display: flex; flex-direction: column; font-size: 0.85rem; font-weight: 600; gap: 0.25rem; }
+.block_scormreport .scorm-report-table .filter-select { min-width: 130px; }
+.block_scormreport .scorm-report-table .filter-select-wide { min-width: 150px; }
+
+/* Action buttons */
+.block_scormreport .scorm-report-table .btn-excel { background: #1D6F42; border-color: #1D6F42; font-weight: 600; }
+.block_scormreport .scorm-report-table .btn-reminder { background: #e67e22; border-color: #e67e22; color: #fff; font-weight: 600; }
+.block_scormreport .scorm-report-table .btn-pdf-main { background: #c0392b; border-color: #c0392b; color: #fff; font-weight: 600; }
+.block_scormreport .scorm-report-table .btn-pdf-row { background: #c0392b; color: #fff; border-color: #c0392b; }
+.block_scormreport .scorm-report-table .btn-disabled-premium { background: #999; border-color: #999; color: #fff; font-weight: 600; cursor: not-allowed; opacity: 0.7; }
+
+/* Collapsible chart */
+.block_scormreport .scorm-report-table .chart-toggle { cursor: pointer; user-select: none; }
+
+/* Premium banner */
+.block_scormreport .scorm-report-table .premium-banner {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: #fff; border: none; border-radius: 12px; padding: 20px 25px; margin-top: 15px;
+    box-shadow: 0 4px 15px rgba(102,126,234,0.4); text-align: center;
+}
+.block_scormreport .scorm-report-table .premium-banner-title { font-size: 1.3rem; font-weight: 700; margin-bottom: 8px; }
+.block_scormreport .scorm-report-table .premium-banner-sub { font-size: 0.9rem; opacity: 0.9; }
+
+/* Reminders - channel cards */
+.block_scormreport .scorm-report-table .channel-card { border: 2px solid #dee2e6; border-radius: 8px; padding: 12px; text-align: center; cursor: pointer; transition: all 0.2s; }
+.block_scormreport .scorm-report-table .channel-card:hover { border-color: #0073aa; background: #eaf4fb; }
+.block_scormreport .scorm-report-table .channel-card.selected { border-color: #0073aa; background: #eaf4fb; }
+
+/* Channel cards (accessible labels) */
+.block_scormreport .scormreport-channel-card {
+    border: 2px solid #dee2e6;
+    transition: border-color 0.2s;
+}
+.block_scormreport .scormreport-channel-card:hover,
+.block_scormreport .scormreport-channel-card.scormreport-channel-selected {
+    border-color: #0073aa;
+}
+.block_scormreport .scormreport-card-header {
+    background: #0073aa;
+    color: #fff;
+    font-weight: 600;
+}
+
+/* Answers table header (grey, to distinguish from main dark-blue header) */
+.block_scormreport .scorm-report-table .answers-header th {
+    background-color: #6c757d;
+    color: #fff;
+}
