@@ -34,7 +34,6 @@ require_login($course);
 require_capability('block/scormreport:export', $context);
 
 // License check.
-require_once($CFG->dirroot . '/blocks/scormreport/classes/license.php');
 if (!\block_scormreport\license::course_allowed($course)) {
     throw new moodle_exception('licenselocked', 'block_scormreport');
 }
