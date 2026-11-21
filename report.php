@@ -286,7 +286,7 @@ if ($download) {
         // ── Sheet 2: SCO matrix (student x SCORM) ──
         $sheet2 = $spreadsheet->createSheet();
         $sheet2->setTitle(get_string('topicscolumn', 'block_scormreport'));
-        $matrixHeaders = [
+        $matrixheaders = [
             get_string('student', 'block_scormreport'),
             get_string('dni', 'block_scormreport'),
             get_string('email', 'block_scormreport'),
@@ -297,7 +297,7 @@ if ($download) {
             get_string('firstaccess', 'block_scormreport'),
             get_string('lastaccess', 'block_scormreport'),
         ];
-        $sheet2->fromArray($matrixHeaders, null, 'A1');
+        $sheet2->fromArray($matrixheaders, null, 'A1');
         $sheet2->getStyle('A1:I1')->applyFromArray($headerstyle);
         $mrow = 2;
         foreach ($globaldata as $row) {
@@ -834,7 +834,7 @@ if (!$isdetail) {
             $rowscore = ($row['score'] !== '-') ? (float)$row['score'] : 0;
 
             // SCOs column: dropdown button only
-            $topicCell = '<button class="btn btn-xs btn-outline-info sco-toggle btn-toggle" aria-expanded="false"
+            $topiccell = '<button class="btn btn-xs btn-outline-info sco-toggle btn-toggle" aria-expanded="false"
                 data-target="scorm-detail-' . $growindex . '"
                 >' . get_string('viewtopics', 'block_scormreport') . '</button>';
 
@@ -851,7 +851,7 @@ if (!$isdetail) {
                 . ($show_col('timescorm')     ? '<td class="text-center font-monospace" data-sort="' . $row['totalseconds'] . '">' . $row['timescorm'] . '</td>' : '')
                 . ($show_col('pcttimecourse') ? '<td class="text-center">' . $row['pcttotal'] . '</td>' : '')
                 . ($show_col('score')         ? '<td class="text-center"><strong>' . $row['score'] . '</strong></td>' : '')
-                . '<td>' . $topicCell . '</td>'
+                . '<td>' . $topiccell . '</td>'
                 . ($show_col('pctvistos')     ? '<td class="text-center">' . ($row['pctvistos'] ?? '-') . '</td>' : '')
                 . ($show_col('pctsuperados')  ? '<td class="text-center">
                     <div class="progress-wrap">
