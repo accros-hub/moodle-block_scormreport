@@ -1342,64 +1342,63 @@ function block_scormreport_get_tutor_daily_activity(int $courseid, array $userid
     }
     $tz = core_date::get_user_timezone_object();
 
-    foreach (array_chunk(array_values($userids), 500) as $chunk) {
-        list($insql, $params) = $DB->get_in_or_equal($chunk, SQL_PARAMS_NAMED, 'uid');
-        $params['courseid'] = $courseid;
-        $logs = $DB->get_recordset_sql(
-            "SELECT id, userid, timecreated
+    // Process one tutor at a time. Never retain the complete course activity log.
+    foreach (array_unique(array_map('intval', $userids)) as $uid) {
+        $bounds = $DB->get_record_sql(
+            "SELECT MIN(timecreated) AS mintime, MAX(timecreated) AS maxtime
                FROM {logstore_standard_log}
-              WHERE courseid = :courseid AND userid $insql AND anonymous = 0
-           ORDER BY userid ASC, timecreated ASC, id ASC",
-            $params
+              WHERE courseid = :courseid AND userid = :userid AND anonymous = 0",
+            ['courseid' => $courseid, 'userid' => $uid]
         );
-        $bytime = [];
-        foreach ($logs as $log) {
-            $bytime[(int)$log->userid][] = (int)$log->timecreated;
-        }
-        $logs->close();
-        if (empty($bytime)) {
+        if (!$bounds || $bounds->mintime === null) {
             continue;
         }
 
-        // Moodle logins of these tutors in the period with course activity.
-        list($insql2, $params2) = $DB->get_in_or_equal(array_keys($bytime), SQL_PARAMS_NAMED, 'lid');
-        $params2['eventname'] = '\\core\\event\\user_loggedin';
-        $mintime = PHP_INT_MAX;
-        $maxtime = 0;
-        foreach ($bytime as $times) {
-            $mintime = min($mintime, $times[0]);
-            $maxtime = max($maxtime, end($times));
-        }
-        $params2['mintime'] = $mintime - DAYSECS;
-        $params2['maxtime'] = $maxtime;
+        // Login events are independent of the course, but only events in the
+        // original course-activity window can start another course connection.
         $logins = [];
-        $rs = $DB->get_recordset_sql(
-            "SELECT id, userid, timecreated
+        $loginrs = $DB->get_recordset_sql(
+            "SELECT id, timecreated
                FROM {logstore_standard_log}
-              WHERE eventname = :eventname AND userid $insql2
+              WHERE eventname = :eventname AND userid = :userid
                 AND timecreated >= :mintime AND timecreated <= :maxtime
-           ORDER BY userid ASC, timecreated ASC",
-            $params2
+              ORDER BY timecreated ASC, id ASC",
+            [
+                'eventname' => '\\core\\event\\user_loggedin',
+                'userid' => $uid,
+                'mintime' => (int)$bounds->mintime - DAYSECS,
+                'maxtime' => (int)$bounds->maxtime,
+            ]
         );
-        foreach ($rs as $login) {
-            $logins[(int)$login->userid][] = (int)$login->timecreated;
+        try {
+            foreach ($loginrs as $login) {
+                $logins[] = (int)$login->timecreated;
+            }
+        } finally {
+            $loginrs->close();
         }
-        $rs->close();
 
-        foreach ($bytime as $uid => $times) {
-            $userlogins = $logins[$uid] ?? [];
-            $li = 0;
-            $prev = null;
-            $prevday = null;
-            $data = ['connections' => 0, 'first' => $times[0], 'last' => end($times), 'days' => []];
-            foreach ($times as $t) {
+        $logs = $DB->get_recordset_sql(
+            "SELECT id, timecreated
+               FROM {logstore_standard_log}
+              WHERE courseid = :courseid AND userid = :userid AND anonymous = 0
+              ORDER BY timecreated ASC, id ASC",
+            ['courseid' => $courseid, 'userid' => $uid]
+        );
+        $li = 0;
+        $prev = null;
+        $prevday = null;
+        $data = ['connections' => 0, 'first' => (int)$bounds->mintime,
+            'last' => (int)$bounds->maxtime, 'days' => []];
+        try {
+            foreach ($logs as $log) {
+                $t = (int)$log->timecreated;
                 $dt = new DateTime('@' . $t);
                 $dt->setTimezone($tz);
                 $day = $dt->format('Y-m-d');
-                // Was there a Moodle login between the previous action and this one?
                 $loggedin = false;
-                while ($li < count($userlogins) && $userlogins[$li] <= $t) {
-                    if ($prev === null || $userlogins[$li] > $prev) {
+                while ($li < count($logins) && $logins[$li] <= $t) {
+                    if ($prev === null || $logins[$li] > $prev) {
                         $loggedin = true;
                     }
                     $li++;
@@ -1416,8 +1415,10 @@ function block_scormreport_get_tutor_daily_activity(int $courseid, array $userid
                 $prev = $t;
                 $prevday = $day;
             }
-            $result[$uid] = $data;
+        } finally {
+            $logs->close();
         }
+        $result[$uid] = $data;
     }
     return $result;
 }
