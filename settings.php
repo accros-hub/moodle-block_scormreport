@@ -26,7 +26,6 @@ defined('MOODLE_INTERNAL') || die();
 if ($ADMIN->fulltree) {
 
     // ── License status & activation ──
-    require_once($CFG->dirroot . '/blocks/scormreport/classes/license.php');
     $expiry = \block_scormreport\license::effective_expiry();
     $valid  = \block_scormreport\license::is_valid();
     $ltype  = \block_scormreport\license::get_type();
