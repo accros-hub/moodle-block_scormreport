@@ -439,3 +439,15 @@
 .block_scormreport .scormreport-compliance-notapt { color: #dc3545; font-weight: 600; }
 .block_scormreport .scormreport-compliance-percent { color: #fff; padding: 2px 8px; border-radius: 10px; font-weight: 600; }
 .block_scormreport .scormreport-compliance-card .badge { font-weight: 600; }
+
+/* Reminder form rendered by templates/reminder_form.mustache. */
+.block_scormreport .scormreport-minpct { width: 100px; }
+.block_scormreport .scormreport-select-column { width: 40px; text-align: center; }
+.block_scormreport .scormreport-channel-options { gap: 1.5rem; flex-wrap: wrap; }
+.block_scormreport .scormreport-channel-option { flex: 1; min-width: 200px; }
+.block_scormreport .scormreport-channel-option label { cursor: pointer; display: block; }
+.block_scormreport .scormreport-channel-option input { margin: 0; }
+.block_scormreport .scormreport-message-explanation { font-size: 0.85rem; background: #ebf5fb; border-color: #0073aa; }
+.block_scormreport .scormreport-preview-card { border: 1px solid #0073aa; }
+.block_scormreport .scormreport-preview-header { background: #ebf5fb; font-size: 0.85rem; font-weight: 600; color: #0073aa; }
+.block_scormreport .scormreport-preview-box { white-space: pre-wrap; font-family: Arial, sans-serif; }
