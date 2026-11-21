@@ -19,9 +19,9 @@ Run functional checks only on a disposable Moodle site with its own database and
 - [x] Backup/restore preserved exactly one history row for the suspended, unenrolled recipient and the mapped sender in a new hidden course. Restore without user data created no history.
 - [x] Historical student and tutor results matched the original queries on synthetic records, including 30-minute gaps, day changes and 90-day boundaries. The integration matrix also covers the cross-window PHPUnit regression.
 - [x] Both Mustache templates escaped HTML-special characters under Moodle's Output API. The reminder form retained its POST controls and session key.
-- [ ] Record the final browser run for the dashboard, the three authenticated PDF downloads, and reminder preview and recipient controls. The Behat scenario never submits the send action.
-- [ ] Record the final code checker results. The 300 warnings on `6f84dbf` were comment wording or formatting, line length, redundant Moodle guard notices and two missing test helper descriptions. The five commented-out-code reports were explanatory comments. The two test helper descriptions were added without changing their assertions.
-- [ ] Record the scheduler regression with a captured internal notification, zero emails and cooldown suppression.
+- [x] Browser checks on Moodle 5.3 ran and passed on `d88eda3`: 3 scenarios and 34 steps. They covered the dashboard and its course link, reminder filters, channel, preview and recipient controls, and all three authenticated PDF downloads. No reminder send action was submitted. See [browser job logs](https://github.com/accros-hub/moodle-block_scormreport/actions/runs/44935453749/job/136940949879).
+- [x] Code checker review. GitHub Actions reported zero errors and 308 warnings in the Moodle 5.0 job on `81c9f3f`. This included ten coverage warnings for the same test class, addressed by declaring its coverage of the license class. Two missing helper descriptions from the previous audit were also fixed. The remaining categories are comment wording or formatting, line length, and Moodle guard notices. The five commented-out-code reports were explanatory comments.
+- [x] The scheduled reminder test captured exactly one internal notification and zero emails. A second task run created no duplicate because the cooldown was active. The isolated Moodle 5.0 job on `81c9f3f` passed 46 tests and 236 assertions. See the [scheduled reminder test run](https://github.com/accros-hub/moodle-block_scormreport/actions/runs/44935872361/job/136942244244).
 - [ ] Verify actual trial, activation, refresh and release against a **sandbox** licensing service with disposable credentials. The current tests exercise the no-token refresh path and local signed-token validation. No test should contact the production licensing service.
 - [ ] Confirm GitHub Actions workflow succeeds on the final branch commit.
 - [ ] Confirm Moodle 5.0–5.3 compatibility as claimed, or narrow the supported versions based on actual results.
@@ -29,6 +29,12 @@ Run functional checks only on a disposable Moodle site with its own database and
 - [ ] Update Moodle Marketplace listing with compatibility, licensing and external-service disclosures above.
 - [ ] Once release validation is complete, bump the version, prepare and hash a ZIP whose top-level directory is `scormreport/`. The Marketplace upload requires approval.
 - [ ] Keep `main` and production untouched until validation and approval.
+
+## Reproducing the functional checks
+
+- Run `moodle-plugin-ci phpunit --filter functional_review_test` with a disposable database and dataroot. The reminder tests use Moodle message and email sinks. The scheduled refresh test disables external access and uses an empty token state.
+- Run `moodle-plugin-ci behat --profile chrome --tags=@block_scormreport_mmrt293` with an isolated Behat site and Chrome. PDF tests validate complete PDF streams; inspect a representative long PDF visually if approval also requires checking typography, pagination and print layout.
+- End-to-end licensing requires a sandbox HTTPS base URL, a disposable site-bound licence or trial identity, and credentials provisioned securely by the service administrator. Exercise activation, refresh, expiration, connectivity failure and release with sandbox data only.
 
 ## Reviewer-facing summary
 

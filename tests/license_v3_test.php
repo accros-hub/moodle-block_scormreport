@@ -30,12 +30,14 @@ defined('MOODLE_INTERNAL') || die();
 
 require_once(__DIR__ . '/fixtures/testable_license_v3.php');
 
+use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Group;
 
 /**
  * ACCROS3 token verification and site normalisation.
  */
 #[Group('block_scormreport')]
+#[CoversClass(license::class)]
 final class license_v3_test extends \advanced_testcase {
     /** Site used in the fixtures (PHPUnit wwwroot is https://www.example.com/moodle). */
     private const SITE = 'www.example.com/moodle';
