@@ -1,6 +1,6 @@
 # MMRT-293 — Marketplace review completion checklist
 
-This file is a release checklist, **not** evidence that the checks have passed. Work only on a staging Moodle installation; do not deploy this review branch to a production site.
+Run functional checks only on a disposable Moodle site with its own database and dataroot. The GitHub Actions jobs use a PostgreSQL service on the runner. They have no access to the production Moodle database.
 
 ## Reviewer response / listing disclosure (English)
 
@@ -14,19 +14,20 @@ This file is a release checklist, **not** evidence that the checks have passed. 
 
 ## Required test evidence
 
-- [ ] Verify PHP syntax across all plugin PHP files (`find . -name '*.php' -print0 | xargs -0 -n1 php -l`).
-- [ ] Run Moodle plugin CI / codechecker on the complete plugin and resolve findings.
-- [ ] Run Moodle PHPUnit tests on staging: `vendor/bin/phpunit --testsuite block_scormreport_testsuite` if the suite is configured; otherwise run `vendor/bin/phpunit blocks/scormreport/tests/` from the Moodle root.
-- [ ] Verify backup and restore of notification history, including user mappings.
-- [ ] Compare student connection sessions, daily connections PDF and tutor activity before/after the refactor using historical records, a 30-minute gap, midnight and a 90-day window boundary.
-- [ ] Verify compliance dashboard renders with course names containing HTML-special characters.
-- [ ] Verify reminder preview, threshold selection, channel selection and checkbox selection in a staging course. Do not send to real users.
-- [ ] Verify scheduled tasks and license activation/refresh with test credentials.
+- [x] PHP lint, AMD syntax and whitespace passed on review commit `6f84dbf`, and PHP lint passed on the first integration-test commit `07d4f94`.
+- [x] PHPUnit on Moodle 5.0–5.3 with isolated PostgreSQL passed on `07d4f94` (45 tests, 230 assertions per version). The new tests cover Moodle course backup/restore with and without user data, real multi-page PDF generation, the Output API, and scheduled tasks without a licence. See [integration job results](https://github.com/accros-hub/moodle-block_scormreport/actions/runs/44935239029).
+- [x] Backup/restore preserved exactly one history row for the suspended, unenrolled recipient and the mapped sender in a new hidden course. Restore without user data created no history.
+- [x] Historical student and tutor results matched the original queries on synthetic records, including 30-minute gaps, day changes and 90-day boundaries. The integration matrix also covers the cross-window PHPUnit regression.
+- [x] Both Mustache templates escaped HTML-special characters under Moodle's Output API. The reminder form retained its POST controls and session key.
+- [ ] Record the final browser run for the dashboard, the three authenticated PDF downloads, and reminder preview and recipient controls. The Behat scenario never submits the send action.
+- [ ] Record the final code checker results. The 300 warnings on `6f84dbf` were comment wording or formatting, line length, redundant Moodle guard notices and two missing test helper descriptions. The five commented-out-code reports were explanatory comments. The two test helper descriptions were added without changing their assertions.
+- [ ] Record the scheduler regression with a captured internal notification, zero emails and cooldown suppression.
+- [ ] Verify actual trial, activation, refresh and release against a **sandbox** licensing service with disposable credentials. The current tests exercise the no-token refresh path and local signed-token validation. No test should contact the production licensing service.
 - [ ] Confirm GitHub Actions workflow succeeds on the final branch commit.
 - [ ] Confirm Moodle 5.0–5.3 compatibility as claimed, or narrow the supported versions based on actual results.
 - [ ] Add the trademark statement on the **public Accros documentation website**, not only this repository.
 - [ ] Update Moodle Marketplace listing with compatibility, licensing and external-service disclosures above.
-- [ ] Bump `version.php` and release number only after validation, package a ZIP with `scormreport/` as its top-level directory, and upload it to the existing MMRT-293 review.
+- [ ] Once release validation is complete, bump the version, prepare and hash a ZIP whose top-level directory is `scormreport/`. The Marketplace upload requires approval.
 - [ ] Keep `main` and production untouched until validation and approval.
 
 ## Reviewer-facing summary

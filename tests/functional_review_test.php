@@ -8,11 +8,11 @@
 //
 // Moodle is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
 //
 // You should have received a copy of the GNU General Public License
-// along with Moodle. If not, see <https://www.gnu.org/licenses/>.
+// along with Moodle.  If not, see <https://www.gnu.org/licenses/>.
 
 /**
  * Integration checks for MMRT-293.
@@ -63,10 +63,14 @@ final class functional_review_test extends \advanced_testcase {
         ];
         $oldid = $DB->insert_record('block_scormreport_notif', (object)$original);
 
-        $copy = \core_course_external::duplicate_course($course->id, 'MMRT-293 restored', 'mmrt293-restored', $course->category, 0, [
-            ['name' => 'users', 'value' => 1],
-            ['name' => 'blocks', 'value' => 1],
-        ]);
+        $copy = \core_course_external::duplicate_course(
+            $course->id,
+            'MMRT-293 restored',
+            'mmrt293-restored',
+            $course->category,
+            0,
+            [['name' => 'users', 'value' => 1], ['name' => 'blocks', 'value' => 1]],
+        );
         $this->assertNotEquals($course->id, $copy['id']);
         $this->assertEquals(0, $DB->get_field('course', 'visible', ['id' => $copy['id']]));
         $restored = $DB->get_records('block_scormreport_notif', ['courseid' => $copy['id']]);
@@ -192,5 +196,43 @@ final class functional_review_test extends \advanced_testcase {
         $this->assertSame(0, $messages->count());
         $this->assertSame(0, $emails->count());
         $this->assertFalse($DB->record_exists('block_scormreport_notif', ['courseid' => $course->id]));
+    }
+
+    /**
+     * Capture a scheduled reminder in memory and verify the second run observes the cooldown.
+     */
+    public function test_scheduled_reminder_is_captured_and_cooldown_prevents_duplicates(): void {
+        global $DB;
+        $this->resetAfterTest();
+        $this->setAdminUser();
+        set_config('lic_testmode', 1, 'block_scormreport');
+        set_config('autoreminder_enabled', 1, 'block_scormreport');
+        $generator = $this->getDataGenerator();
+        $course = $generator->create_course(['startdate' => time() - DAYSECS, 'enddate' => 0]);
+        $learner = $generator->create_user();
+        $generator->enrol_user($learner->id, $course->id, 'student');
+        $generator->create_module('scorm', ['course' => $course->id]);
+        helper::add_block_to_course($course->id);
+
+        $messages = $this->redirectMessages();
+        $emails = $this->redirectEmails();
+        ob_start();
+        try {
+            $task = manager::get_scheduled_task(task\send_auto_reminders::class);
+            $task->execute();
+            $task->execute();
+        } finally {
+            ob_end_clean();
+            $messages->close();
+            $emails->close();
+        }
+        $this->assertSame(1, $messages->count());
+        $this->assertSame(0, $emails->count());
+        $rows = $DB->get_records('block_scormreport_notif', ['courseid' => $course->id]);
+        $this->assertCount(1, $rows);
+        $row = reset($rows);
+        $this->assertEquals($learner->id, $row->userid);
+        $this->assertSame('auto', $row->channel);
+        $this->assertSame('sent', $row->status);
     }
 }

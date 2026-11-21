@@ -40,12 +40,25 @@ final class license_v3_test extends \advanced_testcase {
     /** Site used in the fixtures (PHPUnit wwwroot is https://www.example.com/moodle). */
     private const SITE = 'www.example.com/moodle';
 
+    /**
+     * Load a signed token fixture by filename.
+     *
+     * @param string $name Fixture filename.
+     * @return string
+     */
     private function fixture(string $name): string {
         $contents = file_get_contents(__DIR__ . '/fixtures/' . $name);
         $this->assertNotFalse($contents);
         return trim($contents);
     }
 
+    /**
+     * Verify a token using the fixture public key and expected site.
+     *
+     * @param string $token Signed token under test.
+     * @param string $site Expected site identifier.
+     * @return array|false
+     */
     private function verify(string $token, string $site = self::SITE) {
         return testable_license_v3::verify_token_with_key($token, $this->fixture('test_v3_public.pem'), $site);
     }

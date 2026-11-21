@@ -23,6 +23,9 @@
  */
 
 use Behat\Mink\Exception\ExpectationException;
+use Behat\Step\Given;
+use Behat\Step\Then;
+use Behat\Step\When;
 use block_scormreport\helper;
 
 /**
@@ -32,9 +35,9 @@ class behat_block_scormreport extends behat_base {
     /**
      * Enable the test-only license and add the reviewed block.
      *
-     * @Given the SCORM report test fixture is enabled for :shortname
      * @param string $shortname Course shortname.
      */
+    #[Given('the SCORM report test fixture is enabled for :shortname')]
     public function enable_fixture(string $shortname): void {
         global $DB;
         set_config('lic_testmode', 1, 'block_scormreport');
@@ -45,9 +48,9 @@ class behat_block_scormreport extends behat_base {
     /**
      * Open the reminder without posting to its send action.
      *
-     * @When I open the SCORM report reminder form for :shortname
      * @param string $shortname Course shortname.
      */
+    #[When('I open the SCORM report reminder form for :shortname')]
     public function open_reminder_form(string $shortname): void {
         global $DB;
         $id = $DB->get_field('course', 'id', ['shortname' => $shortname], MUST_EXIST);
@@ -57,10 +60,10 @@ class behat_block_scormreport extends behat_base {
     /**
      * Use the logged-in browser session to fetch each real PDF.
      *
-     * @Then the SCORM report downloads all three PDFs for :shortname and :username
      * @param string $shortname Course shortname.
      * @param string $username Learner username.
      */
+    #[Then('the SCORM report downloads all three PDFs for :shortname and :username')]
     public function download_pdfs(string $shortname, string $username): void {
         global $DB;
         $courseid = $DB->get_field('course', 'id', ['shortname' => $shortname], MUST_EXIST);
