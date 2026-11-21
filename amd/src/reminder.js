@@ -68,6 +68,19 @@ define([], function() {
  subj.addEventListener("input", updatePreview);
 }
 
+            // Refresh the recipient preview when filtering or changing channel.
+            var minpct = document.querySelector('select[name="minpct"]');
+            if (minpct) {
+                minpct.addEventListener("change", function() {
+                    this.form.submit();
+                });
+            }
+            document.querySelectorAll('input[name="channel"]').forEach(function(input) {
+                input.addEventListener("change", function() {
+                    this.form.submit();
+                });
+            });
+
             // Select all checkbox
             var selectAll = document.getElementById("select-all");
             if (selectAll) {
@@ -109,8 +122,6 @@ define([], function() {
                 });
             }
 
-            // Make updateSendCount available globally for inline onchange fallback
-            window.updateSendCount = updateSendCount;
         }
     };
 });
