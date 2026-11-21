@@ -68,7 +68,7 @@ class send_auto_reminders extends \core\task\scheduled_task {
         }
 
         $admin = get_admin();
-        $totalSent = 0;
+        $totalsent = 0;
         $str = function($key, $a = null) {
             return get_string($key, 'block_scormreport', $a);
         };
@@ -144,7 +144,7 @@ class send_auto_reminders extends \core\task\scheduled_task {
 
                 $status = 'failed';
                 if (message_send($eventdata)) {
-                    $totalSent++;
+                    $totalsent++;
                     $status = 'sent';
                 }
 
@@ -163,6 +163,6 @@ class send_auto_reminders extends \core\task\scheduled_task {
             }
         }
 
-        mtrace("block_scormreport: sent $totalSent auto-reminders.");
+        mtrace("block_scormreport: sent $totalsent auto-reminders.");
     }
 }
