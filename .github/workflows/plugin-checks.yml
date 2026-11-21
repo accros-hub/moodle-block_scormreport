@@ -1,0 +1,27 @@
+name: Moodle plugin checks
+
+on:
+  push:
+    branches: [main, fix/mmrt-293-review]
+  pull_request:
+
+jobs:
+  php-lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.2'
+          tools: none
+          coverage: none
+      - name: Lint all PHP files
+        run: |
+          set -euo pipefail
+          find . -type f -name '*.php' -not -path './vendor/*' -print0 |
+            xargs -0 -n1 php -l
+      - name: Check diff whitespace
+        run: git diff --check HEAD~1 HEAD
+      - name: Check deployed reminder AMD JavaScript syntax
+        run: node --check amd/build/reminder.min.js
