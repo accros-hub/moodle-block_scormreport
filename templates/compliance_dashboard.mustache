@@ -1,6 +1,18 @@
 {{!
     Compliance dashboard. All user-provided text is escaped by Mustache.
     @template block_scormreport/compliance_dashboard
+
+    Example context (json):
+    {
+        "title": "Course compliance dashboard",
+        "filterlabel": "Show",
+        "filters": [{"url": "?filter=recent", "label": "Recent courses", "buttonclass": "btn-primary"}],
+        "headers": [{"class": "", "label": "Course"}, {"class": "text-center", "label": "Dates"},
+                    {"class": "text-center", "label": "Students"}, {"class": "text-center", "label": "Passed"},
+                    {"class": "text-center", "label": "Not passed"}, {"class": "text-center", "label": "Pass rate"},
+                    {"class": "text-center", "label": "At risk"}, {"class": "text-center", "label": "No activity"},
+                    {"class": "text-center", "label": "Actions"}]
+    }
 }}
 <div class="scorm-report-table">
     <h3 class="scormreport-compliance-title">{{title}}</h3>

@@ -253,6 +253,7 @@ $recipients = array_values($inactive);
 echo $OUTPUT->render_from_template('block_scormreport/reminder_form', [
     'title' => $str('sendreminder'),
     'coursename' => $course->fullname,
+    'formurl' => $PAGE->url->out(false),
     'courseid' => $courseid,
     'sesskey' => sesskey(),
     'recipientsheading' => $str('definerecipients'),

@@ -1,12 +1,27 @@
 {{!
     Reminder form. Input values and recipient data are HTML-escaped by Mustache.
     @template block_scormreport/reminder_form
+
+    Example context (json):
+    {
+        "title": "Send reminder",
+        "coursename": "Example course",
+        "formurl": "/blocks/scormreport/send_reminder.php",
+        "courseid": 42,
+        "sesskey": "example",
+        "sendtobelow": "Send to learners with less than",
+        "percentoptions": [{"value": "", "label": "Select a percentage", "selected": true},
+                           {"value": 50, "label": "50%"}],
+        "subjectlabel": "Subject",
+        "messagelabel": "Message",
+        "norecipientstext": "No recipients"
+    }
 }}
 <div class="scorm-report-header mb-4">
     <h2 class="scorm-report-title">✉ {{title}}</h2>
     <div class="scorm-report-meta">{{coursename}}</div>
 </div>
-<form method="post" action="">
+<form method="post" action="{{formurl}}">
     <input type="hidden" name="courseid" value="{{courseid}}">
     <input type="hidden" name="sesskey" value="{{sesskey}}">
     <input type="hidden" name="action" id="form-action" value="preview">

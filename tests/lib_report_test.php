@@ -325,7 +325,7 @@ final class lib_report_test extends \advanced_testcase {
                 'objectid' => $course->id,
                 'crud' => 'r',
                 'edulevel' => 2,
-                'contextid' => context_course::instance($course->id)->id,
+                'contextid' => \context_course::instance($course->id)->id,
                 'contextlevel' => CONTEXT_COURSE,
                 'contextinstanceid' => $course->id,
                 'userid' => $user->id,
