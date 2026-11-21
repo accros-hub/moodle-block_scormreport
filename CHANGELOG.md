@@ -1,3 +1,15 @@
+## Unreleased — MMRT-293 review fixes
+
+- Apply Frankenstyle prefix to 33 plugin helper functions and update all call sites.
+- Add the standard GPL header to the PDF pagination helper.
+- Stream historical student and daily connection logs instead of loading all rows into memory.
+- Process tutor activity per user with streamed course logs and bounded login lookup.
+- Render the compliance dashboard and reminder form using Moodle Mustache templates.
+- Move reminder form change handlers from inline HTML into the AMD module and deployed build.
+- Use Moodle autoloading for the plugin license class.
+- Normalize reported PHP variable names and add CI syntax checks.
+- No date cutoff is imposed on historical reporting.
+
 ## 1.12.8-v174 (2026-11-21)
 
 - MMRT-293: Include notification history in course backups with user data and restore it with Moodle's user mappings.
