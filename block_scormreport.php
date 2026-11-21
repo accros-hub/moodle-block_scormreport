@@ -71,7 +71,6 @@ class block_scormreport extends block_base {
 
         // Student view. Hidden when the license does not cover this course: students cannot
         // do anything about it and the locked page is meant for teachers and administrators.
-        require_once($CFG->dirroot . '/blocks/scormreport/classes/license.php');
         if (has_capability('block/scormreport:viewownreport', $context)
                 && \block_scormreport\license::course_allowed($COURSE)) {
             $studenturl = new moodle_url('/blocks/scormreport/student.php',
