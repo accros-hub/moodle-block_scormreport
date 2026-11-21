@@ -86,12 +86,12 @@ function block_scormreport_get_data($courseid, $userid, $scormid, $context, $cou
           ORDER BY id ASC",
         $params_sc
     );
-    $scosbyScorm = [];
+    $scosbyscorm = [];
     foreach ($allscos as $sco) {
-        $scosbyScorm[$sco->scorm][$sco->id] = $sco;
+        $scosbyscorm[$sco->scorm][$sco->id] = $sco;
     }
     $scocounts = [];
-    foreach ($scosbyScorm as $sid => $scolist) {
+    foreach ($scosbyscorm as $sid => $scolist) {
         $scocounts[$sid] = count($scolist);
     }
 
@@ -169,8 +169,8 @@ function block_scormreport_get_data($courseid, $userid, $scormid, $context, $cou
         // 7. CMI values (chunked)
         $valuesmap = [];
         if (!empty($attemptids) && !empty($elementids)) {
-            $allElIds = array_values($elementids);
-            list($insql_elid, $params_elid) = $DB->get_in_or_equal($allElIds, SQL_PARAMS_NAMED, 'ei');
+            $allelementids = array_values($elementids);
+            list($insql_elid, $params_elid) = $DB->get_in_or_equal($allelementids, SQL_PARAMS_NAMED, 'ei');
             foreach (array_chunk($attemptids, 500) as $chunk) {
                 list($insql_att, $params_att) = $DB->get_in_or_equal($chunk, SQL_PARAMS_NAMED, 'at');
                 $cmirows = $DB->get_records_sql(
@@ -312,8 +312,8 @@ function block_scormreport_get_data($courseid, $userid, $scormid, $context, $cou
                 $detaildata[] = block_scormreport_empty_detail($student, $scorm);
                 // For Multi-SCO packages without attempts, populate SCOs with their actual names
                 $emptyscos = [];
-                if ($ismultisco && isset($scosbyScorm[$scorm->id])) {
-                    foreach ($scosbyScorm[$scorm->id] as $sco) {
+                if ($ismultisco && isset($scosbyscorm[$scorm->id])) {
+                    foreach ($scosbyscorm[$scorm->id] as $sco) {
                         $emptyscos[] = [
                             'title'       => $sco->title,
                             'seconds'     => 0,
@@ -345,7 +345,7 @@ function block_scormreport_get_data($courseid, $userid, $scormid, $context, $cou
             if ($ismultisco) {
                 $data = block_scormreport_build_multisco(
                     $scorm, $student, $attemptid, $elementids,
-                    $valuesmap, $scoaccessmap, $scosbyScorm[$scorm->id] ?? []
+                    $valuesmap, $scoaccessmap, $scosbyscorm[$scorm->id] ?? []
                 );
             } else {
                 $data = block_scormreport_build_singlesco(
