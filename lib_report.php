@@ -1043,7 +1043,6 @@ function block_scormreport_get_interactions(array $attemptids, $DB): array {
  */
 function block_scormreport_show_locked_page($PAGE, $OUTPUT, $course, $courseid) {
     global $CFG;
-    require_once($CFG->dirroot . '/blocks/scormreport/classes/license.php');
 
     $blocked = \block_scormreport\license::blocked_reason();
     $until = \block_scormreport\license::licensed_until();
