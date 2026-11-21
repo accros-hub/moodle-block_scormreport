@@ -1352,7 +1352,6 @@ function block_scormreport_get_tutor_daily_activity(int $courseid, array $userid
     }
     $tz = core_date::get_user_timezone_object();
 
-    // Process one tutor at a time. Never retain the complete course activity log.
     foreach (array_unique(array_map('intval', $userids)) as $uid) {
         $bounds = $DB->get_record_sql(
             "SELECT MIN(timecreated) AS mintime, MAX(timecreated) AS maxtime
@@ -1364,69 +1363,77 @@ function block_scormreport_get_tutor_daily_activity(int $courseid, array $userid
             continue;
         }
 
-        // Login events are independent of the course, but only events in the
-        // original course-activity window can start another course connection.
-        $logins = [];
-        $loginrs = $DB->get_recordset_sql(
-            "SELECT id, timecreated
-               FROM {logstore_standard_log}
-              WHERE eventname = :eventname AND userid = :userid
-                AND timecreated >= :mintime AND timecreated <= :maxtime
-              ORDER BY timecreated ASC, id ASC",
-            [
-                'eventname' => '\\core\\event\\user_loggedin',
-                'userid' => $uid,
-                'mintime' => (int)$bounds->mintime - DAYSECS,
-                'maxtime' => (int)$bounds->maxtime,
-            ]
-        );
-        try {
-            foreach ($loginrs as $login) {
-                $logins[] = (int)$login->timecreated;
-            }
-        } finally {
-            $loginrs->close();
-        }
-
-        $logs = $DB->get_recordset_sql(
-            "SELECT id, timecreated
-               FROM {logstore_standard_log}
-              WHERE courseid = :courseid AND userid = :userid AND anonymous = 0
-              ORDER BY timecreated ASC, id ASC",
-            ['courseid' => $courseid, 'userid' => $uid]
-        );
-        $li = 0;
         $prev = null;
         $prevday = null;
         $data = ['connections' => 0, 'first' => (int)$bounds->mintime,
             'last' => (int)$bounds->maxtime, 'days' => []];
-        try {
-            foreach ($logs as $log) {
-                $t = (int)$log->timecreated;
-                $dt = new DateTime('@' . $t);
-                $dt->setTimezone($tz);
-                $day = $dt->format('Y-m-d');
-                $loggedin = false;
-                while ($li < count($logins) && $logins[$li] <= $t) {
-                    if ($prev === null || $logins[$li] > $prev) {
-                        $loggedin = true;
-                    }
-                    $li++;
+
+        // Bound both log queries to 90-day windows, retaining session state
+        // across boundaries. Look back by timeout for logins at a boundary.
+        for ($from = (int)$bounds->mintime; $from <= (int)$bounds->maxtime; $from += 90 * DAYSECS) {
+            $until = $from + 90 * DAYSECS;
+            $logins = [];
+            $loginrs = $DB->get_recordset_sql(
+                "SELECT id, timecreated
+                   FROM {logstore_standard_log}
+                  WHERE eventname = :eventname AND userid = :userid
+                    AND timecreated >= :mintime AND timecreated < :maxtime
+                  ORDER BY timecreated ASC, id ASC",
+                [
+                    'eventname' => '\\core\\event\\user_loggedin',
+                    'userid' => $uid,
+                    'mintime' => $from - max($timeout, DAYSECS),
+                    'maxtime' => $until,
+                ]
+            );
+            try {
+                foreach ($loginrs as $login) {
+                    $logins[] = (int)$login->timecreated;
                 }
-                $isnew = $prev === null || $day !== $prevday || ($t - $prev) > $timeout || $loggedin;
-                if (!isset($data['days'][$day])) {
-                    $data['days'][$day] = ['date' => $t, 'connections' => 0, 'first' => $t, 'last' => $t];
-                }
-                if ($isnew) {
-                    $data['days'][$day]['connections']++;
-                    $data['connections']++;
-                }
-                $data['days'][$day]['last'] = $t;
-                $prev = $t;
-                $prevday = $day;
+            } finally {
+                $loginrs->close();
             }
-        } finally {
-            $logs->close();
+
+            $logs = $DB->get_recordset_sql(
+                "SELECT id, timecreated
+                   FROM {logstore_standard_log}
+                  WHERE courseid = :courseid AND userid = :userid AND anonymous = 0
+                    AND timecreated >= :fromtime AND timecreated < :totime
+                  ORDER BY timecreated ASC, id ASC",
+                ['courseid' => $courseid, 'userid' => $uid,
+                    'fromtime' => $from, 'totime' => $until]
+            );
+            $li = 0;
+            try {
+                foreach ($logs as $log) {
+                    $t = (int)$log->timecreated;
+                    $dt = new DateTime('@' . $t);
+                    $dt->setTimezone($tz);
+                    $day = $dt->format('Y-m-d');
+                    $loggedin = false;
+                    while ($li < count($logins) && $logins[$li] <= $t) {
+                        if ($prev === null || $logins[$li] > $prev) {
+                            $loggedin = true;
+                        }
+                        $li++;
+                    }
+                    $isnew = $prev === null || $day !== $prevday
+                        || ($t - $prev) > $timeout || $loggedin;
+                    if (!isset($data['days'][$day])) {
+                        $data['days'][$day] = ['date' => $t, 'connections' => 0,
+                            'first' => $t, 'last' => $t];
+                    }
+                    if ($isnew) {
+                        $data['days'][$day]['connections']++;
+                        $data['connections']++;
+                    }
+                    $data['days'][$day]['last'] = $t;
+                    $prev = $t;
+                    $prevday = $day;
+                }
+            } finally {
+                $logs->close();
+            }
         }
         $result[$uid] = $data;
     }
