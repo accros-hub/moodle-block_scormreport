@@ -28,12 +28,22 @@ defined('MOODLE_INTERNAL') || die();
 
 require_once($GLOBALS['CFG']->libdir . '/messagelib.php');
 
+/**
+ * Send automatic reminders to eligible learners.
+ */
 class send_auto_reminders extends \core\task\scheduled_task {
-
+    /**
+     * Return the scheduled task name.
+     *
+     * @return string
+     */
     public function get_name() {
         return get_string('task_autoreminder', 'block_scormreport');
     }
 
+    /**
+     * Process courses and send eligible progress reminders.
+     */
     public function execute() {
         global $DB, $CFG;
 
@@ -53,7 +63,6 @@ class send_auto_reminders extends \core\task\scheduled_task {
         $cooldown = $days * 86400; // Do not repeat before N days
 
         require_once(__DIR__ . '/../../lib_report.php');
-        require_once(__DIR__ . '/../license.php');
 
         $courses = $DB->get_records_sql(
             "SELECT DISTINCT c.id, c.fullname, c.startdate, c.enddate, c.timecreated
@@ -69,14 +78,18 @@ class send_auto_reminders extends \core\task\scheduled_task {
         }
 
         $admin = get_admin();
-        $totalSent = 0;
-        $str = function($key, $a = null) {
+        $totalsent = 0;
+        $str = function ($key, $a = null) {
             return get_string($key, 'block_scormreport', $a);
         };
 
         foreach ($courses as $course) {
-            if ($course->enddate && $course->enddate < time()) continue;
-            if ($course->startdate && $course->startdate > time()) continue;
+            if ($course->enddate && $course->enddate < time()) {
+                continue;
+            }
+            if ($course->startdate && $course->startdate > time()) {
+                continue;
+            }
             // Same license rule as the report: no reminders for locked courses.
             if (!\block_scormreport\license::course_allowed($course)) {
                 mtrace("  Course {$course->id}: not covered by the license, skipped.");
@@ -84,28 +97,40 @@ class send_auto_reminders extends \core\task\scheduled_task {
             }
 
             $context = \context_course::instance($course->id, IGNORE_MISSING);
-            if (!$context) continue;
+            if (!$context) {
+                continue;
+            }
 
             try {
-                $reportdata = scormreport_get_data($course->id, 0, 0, $context, $course, $DB, $CFG);
+                $reportdata = block_scormreport_get_data($course->id, 0, 0, $context, $course, $DB, $CFG);
             } catch (\Exception $e) {
                 mtrace("  Error in course {$course->id}: " . $e->getMessage());
                 continue;
             }
 
-            if (empty($reportdata['globaldata'])) continue;
+            if (empty($reportdata['globaldata'])) {
+                continue;
+            }
 
             foreach ($reportdata['globaldata'] as $row) {
                 $pct = (float)rtrim($row['pctsuperados'], '%');
-                if ($pct >= $threshold) continue;
+                if ($pct >= $threshold) {
+                    continue;
+                }
 
                 $lastaccess = $row['lastaccess_ts'] ?? 0;
-                if ($lastaccess > $cutoff) continue;
+                if ($lastaccess > $cutoff) {
+                    continue;
+                }
 
                 // Active enrolments only for automatic reminders
                 $touser = $DB->get_record('user', ['id' => $row['userid'], 'deleted' => 0, 'suspended' => 0]);
-                if (!$touser) continue;
-                if (!is_enrolled($context, $touser, '', true)) continue;
+                if (!$touser) {
+                    continue;
+                }
+                if (!is_enrolled($context, $touser, '', true)) {
+                    continue;
+                }
 
                 // Anti-spam: check last reminder sent
                 $lastnotif = $DB->get_field_sql(
@@ -145,7 +170,7 @@ class send_auto_reminders extends \core\task\scheduled_task {
 
                 $status = 'failed';
                 if (message_send($eventdata)) {
-                    $totalSent++;
+                    $totalsent++;
                     $status = 'sent';
                 }
 
@@ -164,6 +189,6 @@ class send_auto_reminders extends \core\task\scheduled_task {
             }
         }
 
-        mtrace("block_scormreport: sent $totalSent auto-reminders.");
+        mtrace("block_scormreport: sent $totalsent auto-reminders.");
     }
 }

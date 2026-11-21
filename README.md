@@ -1,7 +1,7 @@
 # Course Report — SCORM reporting for Moodle
 
 **Component:** `block_scormreport`
-**Release:** `1.12.7-v173.1`
+**Release:** `1.12.8-v174`
 **Supported Moodle versions:** 5.0, 5.1, 5.2 and 5.3
 **License:** GNU GPL v3 or later
 **Maintainer:** Accros Business Solutions
@@ -164,3 +164,9 @@ The Moodle Marketplace package includes English; other languages are available t
 © 2026 Accros Business Solutions.
 
 GNU General Public License v3 or later. See the `LICENSE` file included with the plugin.
+
+## Trademark attribution
+
+Course Report is an independent plugin for Moodle™ and is not affiliated with or endorsed by Moodle Pty Ltd.
+
+The word Moodle and associated Moodle logos are trademarks or registered trademarks of Moodle Pty Ltd or its related affiliates.

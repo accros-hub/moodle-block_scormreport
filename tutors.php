@@ -13,6 +13,7 @@
 //
 // You should have received a copy of the GNU General Public License
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
+
 /**
 
 /**
@@ -26,7 +27,6 @@
 
 require_once('../../config.php');
 require_once($CFG->dirroot . '/blocks/scormreport/lib_report.php');
-require_once($CFG->dirroot . '/blocks/scormreport/classes/license.php');
 
 $courseid = required_param('courseid', PARAM_INT);
 $course   = $DB->get_record('course', ['id' => $courseid], '*', MUST_EXIST);
@@ -36,8 +36,8 @@ require_login($course);
 require_capability('block/scormreport:viewreports', $context);
 
 if (!\block_scormreport\license::course_allowed($course)) {
-    scormreport_show_locked_page($PAGE, $OUTPUT, $course, $courseid);
-    // scormreport_show_locked_page() calls exit.
+    block_scormreport_show_locked_page($PAGE, $OUTPUT, $course, $courseid);
+    // block_scormreport_show_locked_page() calls exit.
 }
 
 $canexport = has_capability('block/scormreport:export', $context);
@@ -49,15 +49,18 @@ $PAGE->set_title(get_string('tutoractivity', 'block_scormreport'));
 $PAGE->set_heading($course->fullname . ' — ' . get_string('tutoractivity', 'block_scormreport'));
 $PAGE->add_body_class('block_scormreport');
 
-$tutors = scormreport_get_course_tutors($context);
+$tutors = block_scormreport_get_course_tutors($context);
 // Connections per day (a Moodle login or 30 minutes without activity starts a new one).
-$activity = $tutors ? scormreport_get_tutor_daily_activity($courseid, array_keys($tutors)) : [];
+$activity = $tutors ? block_scormreport_get_tutor_daily_activity($courseid, array_keys($tutors)) : [];
 
 echo $OUTPUT->header();
 
 $reporturl = new moodle_url('/blocks/scormreport/report.php', ['courseid' => $courseid]);
-echo html_writer::link($reporturl, get_string('backtoreport', 'block_scormreport'),
-    ['class' => 'btn btn-secondary mb-3']);
+echo html_writer::link(
+    $reporturl,
+    get_string('backtoreport', 'block_scormreport'),
+    ['class' => 'btn btn-secondary mb-3']
+);
 
 echo $OUTPUT->heading(get_string('tutoractivity', 'block_scormreport'), 3);
 echo html_writer::tag('p', get_string('tutoractivity_desc', 'block_scormreport'), ['class' => 'text-muted']);
@@ -68,7 +71,7 @@ if (empty($tutors)) {
     exit;
 }
 
-$fmt = function(int $ts): string {
+$fmt = function (int $ts): string {
     return $ts ? userdate($ts, '%d/%m/%Y %H:%M') : '-';
 };
 
@@ -107,13 +110,17 @@ foreach ($tutors as $tutor) {
     echo html_writer::tag('td', count($act['days']), ['style' => 'text-align:center;']);
     echo html_writer::tag('td', (int)$act['connections'], ['style' => 'text-align:center;']);
     if ($canexport) {
-        $connurl = new moodle_url('/blocks/scormreport/generate_connections_pdf.php',
-            ['courseid' => $courseid, 'userid' => $tutor->id]);
-        $button = html_writer::link($connurl,
+        $connurl = new moodle_url(
+            '/blocks/scormreport/generate_connections_pdf.php',
+            ['courseid' => $courseid, 'userid' => $tutor->id]
+        );
+        $button = html_writer::link(
+            $connurl,
             '<span style="display:inline-flex;align-items:center;gap:8px;">' . $pdficon . ' '
                 . get_string('printconnections', 'block_scormreport') . '</span>',
             ['class' => 'btn btn-sm', 'target' => '_blank',
-             'style' => 'background:#c0392b;border-color:#c0392b;color:#fff;font-weight:600;white-space:nowrap;']);
+            'style' => 'background:#c0392b;border-color:#c0392b;color:#fff;font-weight:600;white-space:nowrap;']
+        );
         echo html_writer::tag('td', $button);
     }
     echo '</tr>';

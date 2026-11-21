@@ -28,23 +28,39 @@ namespace block_scormreport;
 
 defined('MOODLE_INTERNAL') || die();
 
+require_once(__DIR__ . '/fixtures/testable_license_v3.php');
+
+use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Group;
 
 /**
  * ACCROS3 token verification and site normalisation.
  */
 #[Group('block_scormreport')]
+#[CoversClass(license::class)]
 final class license_v3_test extends \advanced_testcase {
-
     /** Site used in the fixtures (PHPUnit wwwroot is https://www.example.com/moodle). */
     private const SITE = 'www.example.com/moodle';
 
+    /**
+     * Load a signed token fixture by filename.
+     *
+     * @param string $name Fixture filename.
+     * @return string
+     */
     private function fixture(string $name): string {
         $contents = file_get_contents(__DIR__ . '/fixtures/' . $name);
         $this->assertNotFalse($contents);
         return trim($contents);
     }
 
+    /**
+     * Verify a token using the fixture public key and expected site.
+     *
+     * @param string $token Signed token under test.
+     * @param string $site Expected site identifier.
+     * @return array|false
+     */
     private function verify(string $token, string $site = self::SITE) {
         return testable_license_v3::verify_token_with_key($token, $this->fixture('test_v3_public.pem'), $site);
     }
@@ -91,7 +107,10 @@ final class license_v3_test extends \advanced_testcase {
 
     public function test_token_is_rejected_with_another_key(): void {
         $this->assertFalse(testable_license_v3::verify_token_with_key(
-            $this->fixture('v3_valid_token.txt'), $this->fixture('test_public.pem'), self::SITE));
+            $this->fixture('v3_valid_token.txt'),
+            $this->fixture('test_public.pem'),
+            self::SITE
+        ));
     }
 
     public function test_site_normalisation_matches_server(): void {
@@ -117,14 +136,5 @@ final class license_v3_test extends \advanced_testcase {
         license::reset_caches();
         $this->assertFalse(license::is_valid());
         $this->assertFalse(license::course_allowed((object)['id' => 0, 'startdate' => time() - DAYSECS]));
-    }
-}
-
-/**
- * Exposes the protected verifier with a test key.
- */
-final class testable_license_v3 extends license {
-    public static function verify_token_with_key(string $token, string $publickey, string $site) {
-        return parent::verify_token($token, $publickey, $site);
     }
 }

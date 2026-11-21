@@ -8,11 +8,11 @@
 //
 // Moodle is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
 //
 // You should have received a copy of the GNU General Public License
-// along with Moodle. If not, see <http://www.gnu.org/licenses/>.
+// along with Moodle.  If not, see <https://www.gnu.org/licenses/>.
 
 /**
  * Restore structure for SCORM Report notifications.
@@ -28,20 +28,24 @@ defined('MOODLE_INTERNAL') || die();
  * Restores the notification history for a course.
  */
 class restore_scormreport_block_structure_step extends restore_structure_step {
-
+    /**
+     * Define the notification paths used by restore.
+     *
+     * @return restore_path_element[]
+     */
     protected function define_structure() {
         $userinfo = $this->get_setting_value('users');
 
         if ($userinfo) {
-            return array(
+            return [
                     new restore_path_element(
-                    'scormreport_notification',
-                    '/block/notifications/notification'
-                ),
-            );
+                        'scormreport_notification',
+                        '/block/notifications/notification'
+                    ),
+            ];
         }
 
-        return array();
+        return [];
     }
 
     /**

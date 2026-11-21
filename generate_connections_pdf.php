@@ -13,6 +13,7 @@
 //
 // You should have received a copy of the GNU General Public License
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
+
 /**
  * Generate a daily connection log PDF for a student (date, first/last time,
  * estimated active time and IP addresses used each day).
@@ -34,22 +35,23 @@ require_login($course);
 require_capability('block/scormreport:export', $context);
 
 // License check.
-require_once($CFG->dirroot . '/blocks/scormreport/classes/license.php');
 if (!\block_scormreport\license::course_allowed($course)) {
     throw new moodle_exception('licenselocked', 'block_scormreport');
 }
 
 $targetuser = $DB->get_record('user', ['id' => $userid, 'deleted' => 0], '*', MUST_EXIST);
-if (!is_enrolled($context, $targetuser, '', false) && !scormreport_is_course_tutor($context, $userid)) {
+if (!is_enrolled($context, $targetuser, '', false) && !block_scormreport_is_course_tutor($context, $userid)) {
     throw new moodle_exception('notenrolled', 'block_scormreport');
 }
 
-$str = function($key, $a = null) { return get_string($key, 'block_scormreport', $a); };
+$str = function ($key, $a = null) {
+    return get_string($key, 'block_scormreport', $a);
+};
 
 // Get the daily connection data.
 // Tutor activity also includes creating content (posts, feedback, grades).
-$istutor = scormreport_is_course_tutor($context, $userid);
-$daily = scormreport_get_daily_connections($courseid, $userid, $istutor ? ['c', 'r', 'u', 'd'] : ['r', 'u']);
+$istutor = block_scormreport_is_course_tutor($context, $userid);
+$daily = block_scormreport_get_daily_connections($courseid, $userid, $istutor ? ['c', 'r', 'u', 'd'] : ['r', 'u']);
 
 // Logo.
 $logopath = '';
@@ -133,7 +135,7 @@ if (empty($daily)) {
     $cols = [28, 26, $pw - 118, 64];
     $headers = [$str('date'), $str('firstconn'), $str('activity'), $str('ipaddresses')];
 
-    $drawheader = function() use ($pdf, $cols, $headers) {
+    $drawheader = function () use ($pdf, $cols, $headers) {
         $pdf->SetFont('helvetica', 'B', 8);
         $pdf->SetFillColor(0, 115, 170);
         $pdf->SetTextColor(255, 255, 255);

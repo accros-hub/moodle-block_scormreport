@@ -13,6 +13,7 @@
 //
 // You should have received a copy of the GNU General Public License
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
+
 /**
  * Adhoc task to add the scormreport block to all courses in batches.
  *
@@ -25,8 +26,10 @@ namespace block_scormreport\task;
 
 defined('MOODLE_INTERNAL') || die();
 
+/**
+ * Add the SCORM Report block to configured courses.
+ */
 class add_block_to_courses extends \core\task\adhoc_task {
-
     /** @var int Courses per batch */
     const BATCH_SIZE = 200;
 

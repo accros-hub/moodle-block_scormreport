@@ -13,6 +13,7 @@
 //
 // You should have received a copy of the GNU General Public License
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
+
 /**
  * Event observer for block_scormreport.
  *
@@ -23,8 +24,10 @@
 
 defined('MOODLE_INTERNAL') || die();
 
+/**
+ * Handles course events for the SCORM Report block.
+ */
 class block_scormreport_observer {
-
     /**
      * Automatically add the scormreport block to a newly created course,
      * only if the auto_add_new_courses setting is enabled (default off).

@@ -8,11 +8,11 @@
 //
 // Moodle is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
 //
 // You should have received a copy of the GNU General Public License
-// along with Moodle. If not, see <http://www.gnu.org/licenses/>.
+// along with Moodle.  If not, see <https://www.gnu.org/licenses/>.
 
 /**
  * Answer texts for SCORM packages that report choice answers as identifiers.
@@ -33,7 +33,6 @@ namespace block_scormreport;
  * Looks up the text of answer identifiers in the SCORM package.
  */
 class answer_labels {
-
     /** @var array Labels already read in this request, keyed by scorm id. */
     protected static $byscorm = [];
 
@@ -165,7 +164,7 @@ class answer_labels {
      * @return string
      */
     protected static function clean_text(string $raw): string {
-        $text = preg_replace_callback('/\\\\u([0-9a-fA-F]{4})/', function($m) {
+        $text = preg_replace_callback('/\\\\u([0-9a-fA-F]{4})/', function ($m) {
             return \core_text::code2utf8(hexdec($m[1]));
         }, $raw);
         $text = str_replace(['\\"', "\\'", '\\/', '\\n', '\\r', '\\t', '\\\\'], ['"', "'", '/', ' ', ' ', ' ', '\\'], $text);

@@ -32,13 +32,13 @@ define([], function() {
             function updatePreview() {
                 var body = document.getElementById("msg-body");
                 if (!body) {
- return;
-}
+                    return;
+                }
                 var full = previewHeader + body.value + "\n\n" + previewFooter;
                 var box = document.getElementById("preview-box");
                 if (box) {
- box.textContent = full;
-}
+                    box.textContent = full;
+                }
             }
 
             /**
@@ -48,8 +48,8 @@ define([], function() {
                 var count = document.querySelectorAll(".recipient-check:checked").length;
                 var el = document.getElementById("send-count");
                 if (el) {
- el.textContent = count;
-}
+                    el.textContent = count;
+                }
                 var btn = document.getElementById("btn-send");
                 if (btn) {
                     btn.disabled = (count === 0);
@@ -61,12 +61,25 @@ define([], function() {
             updatePreview();
             var ta = document.getElementById("msg-body");
             if (ta) {
- ta.addEventListener("input", updatePreview);
-}
+                ta.addEventListener("input", updatePreview);
+            }
             var subj = document.getElementById("msg-subject");
             if (subj) {
- subj.addEventListener("input", updatePreview);
-}
+                subj.addEventListener("input", updatePreview);
+            }
+
+            // Refresh the recipient preview when filtering or changing channel.
+            var minpct = document.querySelector('select[name="minpct"]');
+            if (minpct) {
+                minpct.addEventListener("change", function() {
+                    this.form.submit();
+                });
+            }
+            document.querySelectorAll('input[name="channel"]').forEach(function(input) {
+                input.addEventListener("change", function() {
+                    this.form.submit();
+                });
+            });
 
             // Select all checkbox
             var selectAll = document.getElementById("select-all");
@@ -103,14 +116,12 @@ define([], function() {
                     }
                     var actionField = document.getElementById("form-action");
                     if (actionField) {
- actionField.value = "send";
-}
+                        actionField.value = "send";
+                    }
                     return true;
                 });
             }
 
-            // Make updateSendCount available globally for inline onchange fallback
-            window.updateSendCount = updateSendCount;
         }
     };
 });

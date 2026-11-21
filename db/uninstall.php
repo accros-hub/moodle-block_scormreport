@@ -13,6 +13,7 @@
 //
 // You should have received a copy of the GNU General Public License
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
+
 /**
  * Uninstall steps for block_scormreport.
  *
@@ -23,6 +24,11 @@
 
 defined('MOODLE_INTERNAL') || die();
 
+/**
+ * Remove plugin-owned data during uninstallation.
+ *
+ * @return bool
+ */
 function xmldb_block_scormreport_uninstall() {
     global $DB;
 

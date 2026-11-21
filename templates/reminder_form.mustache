@@ -1,0 +1,117 @@
+{{!
+    Reminder form. Input values and recipient data are HTML-escaped by Mustache.
+    @template block_scormreport/reminder_form
+
+    Example context (json):
+    {
+        "title": "Send reminder",
+        "coursename": "Example course",
+        "formurl": "/blocks/scormreport/send_reminder.php",
+        "courseid": 42,
+        "sesskey": "example",
+        "sendtobelow": "Send to learners with less than",
+        "percentoptions": [{"value": "", "label": "Select a percentage", "selected": true},
+                           {"value": 50, "label": "50%"}],
+        "subjectlabel": "Subject",
+        "messagelabel": "Message",
+        "norecipientstext": "No recipients"
+    }
+}}
+<div class="scorm-report-header mb-4">
+    <h2 class="scorm-report-title">✉ {{title}}</h2>
+    <div class="scorm-report-meta">{{coursename}}</div>
+</div>
+<form method="post" action="{{formurl}}">
+    <input type="hidden" name="courseid" value="{{courseid}}">
+    <input type="hidden" name="sesskey" value="{{sesskey}}">
+    <input type="hidden" name="action" id="form-action" value="preview">
+    <div class="card mb-4">
+        <div class="card-header scormreport-card-header">1. {{recipientsheading}}</div>
+        <div class="card-body">
+            <label class="font-weight-bold">{{sendtobelow}}
+                <select name="minpct" class="form-control d-inline-block scormreport-minpct" required>
+                    {{#percentoptions}}<option value="{{value}}" {{#selected}}selected{{/selected}}>{{label}}</option>{{/percentoptions}}
+                </select> {{oftopicspassed}}
+            </label>
+        </div>
+    </div>
+    <div class="card mb-4">
+        <div class="card-header scormreport-card-header">2. {{recipientlistheading}}</div>
+        <div class="card-body p-0">
+            {{#selectpercentfirst}}<p class="p-3 text-muted">{{selectpercentfirstlabel}}</p>{{/selectpercentfirst}}
+            {{#norecipients}}<p class="p-3 text-muted">{{norecipientslabel}}</p>{{/norecipients}}
+            {{#hasrecipients}}
+                <table class="table table-sm mb-0 scorm-report-table">
+                    <thead><tr>
+                        <th class="scormreport-select-column"><input type="checkbox" id="select-all" checked title="{{filterall}}"></th>
+                        <th>{{studentlabel}}</th><th>{{emaillabel}}</th>
+                        <th class="text-center">{{pctsuperadoslabel}}</th>
+                        <th class="text-center">{{pctvistoslabel}}</th><th>{{lastaccesslabel}}</th>
+                    </tr></thead>
+                    <tbody>
+                        {{#recipients}}
+                            <tr>
+                                <td class="text-center"><input type="checkbox" class="recipient-check" name="selected_users[]" value="{{userid}}" checked></td>
+                                <td>{{studentname}}</td><td><small>{{email}}</small></td>
+                                <td class="text-center"><strong>{{pctsuperados}}</strong></td>
+                                <td class="text-center">{{pctvistos}}</td><td>{{lastaccess}}</td>
+                            </tr>
+                        {{/recipients}}
+                    </tbody>
+                </table>
+            {{/hasrecipients}}
+        </div>
+    </div>
+    <div class="card mb-4">
+        <div class="card-header scormreport-card-header">3. {{channelheading}}</div>
+        <div class="card-body">
+            <div class="d-flex scormreport-channel-options">
+                {{#channels}}
+                    <div class="scormreport-channel-option">
+                        <label for="ch_{{value}}" class="card h-100 scormreport-channel-card {{#selected}}scormreport-channel-selected{{/selected}}">
+                            <div class="card-body p-3">
+                                <div class="d-flex align-items-center mb-1">
+                                    <input type="radio" name="channel" id="ch_{{value}}" value="{{value}}" {{#selected}}checked{{/selected}}>
+                                    <span class="font-weight-bold">{{label}}</span>
+                                </div>
+                                <small class="text-muted">{{description}}</small>
+                            </div>
+                        </label>
+                    </div>
+                {{/channels}}
+            </div>
+        </div>
+    </div>
+    <div class="card mb-4">
+        <div class="card-header scormreport-card-header">4. {{composeheading}}</div>
+        <div class="card-body">
+            <div class="alert alert-info scormreport-message-explanation">
+                <strong>{{messageautobuilds}}</strong>
+                <div>{{messageautogreeting}}</div><div>{{messageautobody}}</div><div>{{messageautofooter}}</div>
+            </div>
+            {{#hasrecipients}}
+                <div class="card mb-3 scormreport-preview-card">
+                    <div class="card-header scormreport-preview-header">{{previewfor}}</div>
+                    <div class="card-body p-3"><div id="preview-box" class="scormreport-preview-box"></div></div>
+                </div>
+            {{/hasrecipients}}
+            <div class="form-group">
+                <label for="msg-subject" class="font-weight-bold">{{subjectlabel}}</label>
+                <input type="text" name="subject" id="msg-subject" class="form-control" value="{{subject}}" required>
+            </div>
+            <div class="form-group">
+                <label for="msg-body" class="font-weight-bold">{{messagelabel}}</label>
+                <textarea name="message" id="msg-body" class="form-control" rows="10" required>{{message}}</textarea>
+            </div>
+        </div>
+    </div>
+    {{#hasrecipients}}
+        <button type="submit" id="btn-send" class="btn btn-primary btn-lg"
+            data-confirm="{{confirmtext}}" data-norecipients="{{norecipientstext}}">
+            {{sendbefore}}<span id="send-count">{{recipientcount}}</span>{{sendafter}}
+        </button>
+    {{/hasrecipients}}
+    {{^hasrecipients}}
+        <button type="button" class="btn btn-secondary btn-lg" disabled>{{norecipientstext}}</button>
+    {{/hasrecipients}}
+</form>

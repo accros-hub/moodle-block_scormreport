@@ -1,0 +1,92 @@
+name: Moodle plugin checks
+
+on:
+  push:
+    branches: [main, fix/mmrt-293-review]
+  pull_request:
+
+jobs:
+  php-lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+      - name: Set up PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.2'
+          tools: none
+          coverage: none
+      - name: Lint all PHP files
+        run: |
+          set -euo pipefail
+          find . -type f -name '*.php' -not -path './vendor/*' -print0 |
+            xargs -0 -n1 php -l
+      - name: Check diff whitespace
+        env:
+          PR_BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          PUSH_BEFORE_SHA: ${{ github.event.before }}
+        run: |
+          base="${PR_BASE_SHA:-${PUSH_BEFORE_SHA:-}}"
+          if [[ -z "$base" || "$base" =~ ^0+$ ]]; then
+            base="$(git merge-base origin/main HEAD)"
+          fi
+          git diff --check "$base"...HEAD
+      - name: Check AMD source and deployed JavaScript syntax
+        run: |
+          set -euo pipefail
+          for file in amd/src/*.js; do node --input-type=module --check < "$file"; done
+          for file in amd/build/*.js; do node --check "$file"; done
+
+  moodle-tests:
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+    strategy:
+      fail-fast: false
+      matrix:
+        moodle: [MOODLE_500_STABLE, MOODLE_501_STABLE, MOODLE_502_STABLE, MOODLE_503_STABLE]
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_HOST_AUTH_METHOD: trust
+        ports:
+          - 5432:5432
+        options: --health-cmd pg_isready --health-interval 10s --health-timeout 5s --health-retries 3
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          path: plugin
+          persist-credentials: false
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          extensions: pgsql, intl, sodium, soap, zip, gd, exif, mbstring, curl
+          ini-values: max_input_vars=5000
+          coverage: none
+      - name: Install Moodle Plugin CI
+        run: |
+          composer create-project -n --no-dev --prefer-dist moodlehq/moodle-plugin-ci ci ^4
+          echo "$PWD/ci/bin" >> "$GITHUB_PATH"
+          echo "$PWD/ci/vendor/bin" >> "$GITHUB_PATH"
+          echo "NVM_DIR=$HOME/.nvm" >> "$GITHUB_ENV"
+          sudo locale-gen en_AU.UTF-8
+      - name: Install isolated Moodle
+        env:
+          DB: pgsql
+          MOODLE_BRANCH: ${{ matrix.moodle }}
+        run: moodle-plugin-ci install --plugin ./plugin --db-host=127.0.0.1
+      - name: PHPUnit
+        run: moodle-plugin-ci phpunit --fail-on-warning
+      - name: Moodle code style
+        if: ${{ !cancelled() }}
+        run: moodle-plugin-ci phpcs
+      - name: Mustache validation
+        if: ${{ !cancelled() }}
+        run: moodle-plugin-ci mustache
+      - name: Browser regression checks
+        if: ${{ !cancelled() && matrix.moodle == 'MOODLE_503_STABLE' }}
+        run: moodle-plugin-ci behat --profile chrome --tags=@block_scormreport_mmrt293

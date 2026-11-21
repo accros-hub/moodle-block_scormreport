@@ -8,11 +8,11 @@
 //
 // Moodle is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
 //
 // You should have received a copy of the GNU General Public License
-// along with Moodle. If not, see <http://www.gnu.org/licenses/>.
+// along with Moodle.  If not, see <https://www.gnu.org/licenses/>.
 
 /**
  * Backup task for the SCORM Report block.
@@ -27,24 +27,50 @@ defined('MOODLE_INTERNAL') || die();
 require_once($CFG->dirroot .
     '/blocks/scormreport/backup/moodle2/backup_scormreport_block_stepslib.php');
 
+/**
+ * Register the backup steps for the SCORM Report block.
+ */
 class backup_scormreport_block_task extends backup_block_task {
-
+    /**
+     * Define block-specific backup settings.
+     */
     protected function define_my_settings() {
     }
 
+    /**
+     * Register the notification backup step.
+     */
     protected function define_my_steps() {
         $this->add_step(new backup_scormreport_block_structure_step(
-            'scormreport_structure', 'scormreport.xml'));
+            'scormreport_structure',
+            'scormreport.xml'
+        ));
     }
 
+    /**
+     * Return the areas whose files are included in the backup.
+     *
+     * @return array
+     */
     public function get_fileareas() {
-        return array();
+        return [];
     }
 
+    /**
+     * Return configuration fields containing encoded content.
+     *
+     * @return array
+     */
     public function get_configdata_encoded_attributes() {
-        return array();
+        return [];
     }
 
+    /**
+     * Return content with backup links encoded.
+     *
+     * @param string $content Content to process.
+     * @return string
+     */
     public static function encode_content_links($content) {
         return $content;
     }

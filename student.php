@@ -13,17 +13,17 @@
 //
 // You should have received a copy of the GNU General Public License
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
+
 /**
  * Student personal SCORM report.
- * Uses scormreport_get_data() from lib_report.php for all calculations.
+ * Uses block_scormreport_get_data() from lib_report.php for all calculations.
  *
  * @package    block_scormreport
  * @copyright  2026 Accros Business Solutions
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
-$dirname = dirname(__FILE__);
-require_once($dirname . '/../../config.php');
+require_once('../../config.php');
 require_once($CFG->dirroot . '/blocks/scormreport/lib_report.php');
 
 $courseid = required_param('courseid', PARAM_INT);
@@ -42,9 +42,8 @@ if (has_capability('block/scormreport:viewreports', $context)) {
 require_capability('block/scormreport:viewownreport', $context);
 
 // License check: courses not covered by the license show the locked page.
-require_once($CFG->dirroot . '/blocks/scormreport/classes/license.php');
 if (!\block_scormreport\license::course_allowed($course)) {
-    scormreport_show_locked_page($PAGE, $OUTPUT, $course, $course->id);
+    block_scormreport_show_locked_page($PAGE, $OUTPUT, $course, $course->id);
 }
 
 $userid = $USER->id;
@@ -59,13 +58,13 @@ foreach ($modinfo->get_instances_of('scorm') as $cminfo) {
 }
 
 // Get data from lib_report.php
-$reportdata  = scormreport_get_data($courseid, $userid, 0, $context, $course, $DB, $CFG);
+$reportdata  = block_scormreport_get_data($courseid, $userid, 0, $context, $course, $DB, $CFG);
 $coursehours = $reportdata['coursehours'];
 
 // Keep only SCORMs visible to the student
-$detaildata_all = $reportdata['detaildata'];
+$detaildataall = $reportdata['detaildata'];
 $detaildata = [];
-foreach ($detaildata_all as $row) {
+foreach ($detaildataall as $row) {
     if (in_array($row['scormid'], $visiblescormids)) {
         // Add 'attempted' and 'time' fields used by the HTML view
         $row['attempted'] = ($row['status'] !== 'notattempted');
@@ -76,8 +75,8 @@ foreach ($detaildata_all as $row) {
         }
         if (!isset($row['passedscos'])) {
             $row['passedscos'] = $row['multisco']
-                ? count(array_filter($row['scos'], fn($s) => scormreport_is_passed($s['status'])))
-                : (scormreport_is_passed($row['status']) ? 1 : 0);
+                ? count(array_filter($row['scos'], fn($s) => block_scormreport_is_passed($s['status'])))
+                : (block_scormreport_is_passed($row['status']) ? 1 : 0);
         }
         $detaildata[] = $row;
     }
@@ -97,8 +96,8 @@ $totalseconds = 0;
 $scores       = [];
 $seen         = 0;
 $passed       = 0;
-$firstaccess_ts = [];
-$lastaccess_ts  = [];
+$firstaccessts = [];
+$lastaccessts  = [];
 
 foreach ($detaildata as $row) {
     if ($row['attempted']) {
@@ -112,15 +111,19 @@ foreach ($detaildata as $row) {
         }
         if ($row['multisco'] && !empty($row['scos'])) {
             foreach ($row['scos'] as $sco) {
-                if ($sco['status'] !== 'notattempted') $seen++;
-                if (scormreport_is_passed($sco['status'])) $passed++;
+                if ($sco['status'] !== 'notattempted') {
+                    $seen++;
+                }
+                if (block_scormreport_is_passed($sco['status'])) {
+                    $passed++;
+                }
             }
         } else {
             $seen++;
-            if (scormreport_is_passed($row['status'])) $passed++;
+            if (block_scormreport_is_passed($row['status'])) {
+                $passed++;
+            }
         }
-    } else {
-        // Multi-SCO not attempted: SCOs already counted in totalscorms
     }
 }
 
@@ -128,13 +131,17 @@ foreach ($detaildata as $row) {
 $firsts = [];
 $lasts  = [];
 foreach ($detaildata as $row) {
-    if (!empty($row['firstaccess_ts'])) $firsts[] = $row['firstaccess_ts'];
-    if (!empty($row['lastaccess_ts']))  $lasts[]  = $row['lastaccess_ts'];
+    if (!empty($row['firstaccess_ts'])) {
+        $firsts[] = $row['firstaccess_ts'];
+    }
+    if (!empty($row['lastaccess_ts'])) {
+        $lasts[]  = $row['lastaccess_ts'];
+    }
 }
 $globalfirstaccess = !empty($firsts) ? userdate(min($firsts), '%d/%m/%Y %H:%M') : '-';
-$globallastaccess  = !empty($lasts)  ? userdate(max($lasts), '%d/%m/%Y %H:%M')  : '-';
+$globallastaccess  = !empty($lasts) ? userdate(max($lasts), '%d/%m/%Y %H:%M') : '-';
 
-$pctvistos    = $totalscorms > 0 ? round(($seen   / $totalscorms) * 100, 1) : 0;
+$pctvistos    = $totalscorms > 0 ? round(($seen / $totalscorms) * 100, 1) : 0;
 $pctsuperados = $totalscorms > 0 ? round(($passed / $totalscorms) * 100, 1) : 0;
 
 // Percentage of time against total course hours
@@ -154,11 +161,15 @@ if (!empty($coursehours) && is_numeric(trim($coursehours))) {
         }
     }
 }
-$sumpcttotal_str = $sumpcttotal > 0 ? round($sumpcttotal, 1) . '%' : '-';
+$sumpcttotalstr = $sumpcttotal > 0 ? round($sumpcttotal, 1) . '%' : '-';
 
-if (count($scores) === 0)     $notamedia = '-';
-elseif (count($scores) === 1) $notamedia = $scores[0];
-else                          $notamedia = round(array_sum($scores) / count($scores), 1);
+if (count($scores) === 0) {
+    $notamedia = '-';
+} else if (count($scores) === 1) {
+    $notamedia = $scores[0];
+} else {
+    $notamedia = round(array_sum($scores) / count($scores), 1);
+}
 
 // ─── HTML ─────────────────────────────────────────────────────────────────────
 $PAGE->set_url('/blocks/scormreport/student.php', ['courseid' => $courseid]);
@@ -171,12 +182,15 @@ $PAGE->add_body_class('block_scormreport');
 echo $OUTPUT->header();
 
 $courseurl = new moodle_url('/course/view.php', ['id' => $courseid]);
-echo html_writer::link($courseurl, get_string('back', 'block_scormreport'),
-    ['class' => 'btn btn-secondary mb-3']);
+echo html_writer::link(
+    $courseurl,
+    get_string('back', 'block_scormreport'),
+    ['class' => 'btn btn-secondary mb-3']
+);
 
 // Get course dates
 $startdate = !empty($course->startdate) ? userdate($course->startdate, '%d/%m/%Y') : '-';
-$enddate   = !empty($course->enddate)   ? userdate($course->enddate,   '%d/%m/%Y') : '-';
+$enddate   = !empty($course->enddate) ? userdate($course->enddate, '%d/%m/%Y') : '-';
 
 // ($coursehours is loaded at the top of the file.)
 
@@ -280,19 +294,26 @@ if (empty($detaildata)) {
     <div class="table-responsive">
     <table class="table table-striped table-hover scorm-report-table scorm-table-full sortable-table" id="student-table">
         <thead><tr>
-            <th class="sortable-col" role="button" tabindex="0" data-col="0">' . get_string('scormname',   'block_scormreport') . ' <span class="sort-icon" aria-hidden="true">↕</span></th>
-            <th class="sortable-col" role="button" tabindex="0" data-col="1">' . get_string('timetotal',   'block_scormreport') . ' <span class="sort-icon" aria-hidden="true">↕</span></th>
-            <th class="sortable-col" role="button" tabindex="0" data-col="2">' . get_string('pcttimecourse', 'block_scormreport') . ' <span class="sort-icon" aria-hidden="true">↕</span></th>
-            <th class="sortable-col" role="button" tabindex="0" data-col="3">' . get_string('score',       'block_scormreport') . ' <span class="sort-icon" aria-hidden="true">↕</span></th>
-            <th class="sortable-col" role="button" tabindex="0" data-col="4">' . get_string('status',      'block_scormreport') . ' <span class="sort-icon" aria-hidden="true">↕</span></th>
-            <th class="sortable-col" role="button" tabindex="0" data-col="5">' . get_string('firstaccess', 'block_scormreport') . ' <span class="sort-icon" aria-hidden="true">↕</span></th>
-            <th class="sortable-col" role="button" tabindex="0" data-col="6">' . get_string('lastaccess',  'block_scormreport') . ' <span class="sort-icon" aria-hidden="true">↕</span></th>
+            <th class="sortable-col" role="button" tabindex="0" data-col="0">' . get_string('scormname', 'block_scormreport')
+                . ' <span class="sort-icon" aria-hidden="true">↕</span></th>
+            <th class="sortable-col" role="button" tabindex="0" data-col="1">' . get_string('timetotal', 'block_scormreport')
+                . ' <span class="sort-icon" aria-hidden="true">↕</span></th>
+            <th class="sortable-col" role="button" tabindex="0" data-col="2">'
+                . get_string('pcttimecourse', 'block_scormreport') . ' <span class="sort-icon" aria-hidden="true">↕</span></th>
+            <th class="sortable-col" role="button" tabindex="0" data-col="3">' . get_string('score', 'block_scormreport')
+                . ' <span class="sort-icon" aria-hidden="true">↕</span></th>
+            <th class="sortable-col" role="button" tabindex="0" data-col="4">' . get_string('status', 'block_scormreport')
+                . ' <span class="sort-icon" aria-hidden="true">↕</span></th>
+            <th class="sortable-col" role="button" tabindex="0" data-col="5">'
+                . get_string('firstaccess', 'block_scormreport') . ' <span class="sort-icon" aria-hidden="true">↕</span></th>
+            <th class="sortable-col" role="button" tabindex="0" data-col="6">' . get_string('lastaccess', 'block_scormreport')
+                . ' <span class="sort-icon" aria-hidden="true">↕</span></th>
         </tr></thead>
         <tbody>
         <tr class="table-primary font-weight-bold">
             <td><strong>' . get_string('allscorms', 'block_scormreport') . '</strong></td>
-            <td class="text-center font-monospace"><strong>' . scormreport_hms($totalseconds) . '</strong></td>
-            <td class="text-center"><strong>' . $sumpcttotal_str . '</strong></td>
+            <td class="text-center font-monospace"><strong>' . block_scormreport_hms($totalseconds) . '</strong></td>
+            <td class="text-center"><strong>' . $sumpcttotalstr . '</strong></td>
             <td class="text-center"><strong>' . ($notamedia !== '-' ? $notamedia : '-') . '</strong></td>
             <td class="text-center"></td>
             <td class="text-center">' . $globalfirstaccess . '</td>
@@ -302,7 +323,7 @@ if (empty($detaildata)) {
     $srowindex = 0;
     foreach ($detaildata as $row) {
         $srowindex++;
-        $badgeinfo = scormreport_get_badge_info($row['status']);
+        $badgeinfo = block_scormreport_get_badge_info($row['status']);
         $badge = $badgeinfo['badge'];
         $label = $badgeinfo['label'];
 
@@ -315,11 +336,20 @@ if (empty($detaildata)) {
         }
 
         $srowclass = '';
-        switch(strtolower($row['status'])) {
-            case 'passed': case 'completed': $srowclass = 'row-passed'; break;
-            case 'failed':                   $srowclass = 'row-failed'; break;
-            case 'incomplete':               $srowclass = 'row-incomplete'; break;
-            default:                         $srowclass = 'row-notattempted'; break;
+        switch (strtolower($row['status'])) {
+            case 'passed':
+            case 'completed':
+                $srowclass = 'row-passed';
+                break;
+            case 'failed':
+                $srowclass = 'row-failed';
+                break;
+            case 'incomplete':
+                $srowclass = 'row-incomplete';
+                break;
+            default:
+                $srowclass = 'row-notattempted';
+                break;
         }
         echo '<tr class="' . $srowclass . '">
             <td>' . $namecell . '</td>
@@ -332,7 +362,8 @@ if (empty($detaildata)) {
             <td class="text-center"><strong>'        . $row['score'] . '</strong></td>
             <td class="text-center">
                 <span class="badge ' . $badge . '">' . $label . '</span>
-                ' . ($row['multisco'] ? '<br><small class="text-muted-sub">' . get_string('topicslabel', 'block_scormreport', (object)['passed' => $row['passedscos'], 'total' => $row['totalscos']]) . '</small>' : '') . '
+                ' . ($row['multisco'] ? '<br><small class="text-muted-sub">'
+                    . get_string('topicslabel', 'block_scormreport', (object)['passed' => $row['passedscos'], 'total' => $row['totalscos']]) . '</small>' : '') . '
             </td>
             <td data-sort="' . ($row['firstaccess_ts'] ?? 0) . '">' . $row['firstaccess'] . '</td>
             <td data-sort="' . ($row['lastaccess_ts'] ?? 0) . '">' . $row['lastaccess']  . '</td>
@@ -354,12 +385,12 @@ if (empty($detaildata)) {
                     <tbody>';
 
             foreach ($row['scos'] as $sco) {
-                $scobadge = scormreport_get_badge_info($sco['status']);
+                $scobadge = block_scormreport_get_badge_info($sco['status']);
                 $sb = $scobadge['badge'];
                 $sl = $scobadge['label'];
                 echo '<tr>
                     <td class="sco-cell-name">' . htmlspecialchars($sco['title']) . '</td>
-                    <td class="sco-cell-mono">' . scormreport_hms($sco['seconds']) . '</td>
+                    <td class="sco-cell-mono">' . block_scormreport_hms($sco['seconds']) . '</td>
                     <td style="text-align:center;">' . (($sco['score'] !== false) ? $sco['score'] : '-') . '</td>
                     <td style="text-align:center;"><span class="badge ' . $sb . '">' . $sl . '</span></td>
                     <td>' . $sco['firstaccess'] . '</td>
