@@ -893,68 +893,67 @@ function block_scormreport_get_connections(int $courseid, array $studentids, int
         ];
     }
 
-    // Read course logs from logstore_standard_log in user chunks
+    // Stream course logs so memory use depends on the number of students and days,
+    // not on the number of historical log events.
     foreach (array_chunk($studentids, 500) as $chunk) {
         list($insql, $params) = $DB->get_in_or_equal($chunk, SQL_PARAMS_NAMED, 'uid');
         list($crudsql, $crudparams) = $DB->get_in_or_equal($crud, SQL_PARAMS_NAMED, 'crud');
         $params = array_merge($params, $crudparams);
         $params['courseid'] = $courseid;
 
-        $logs = $DB->get_records_sql(
+        $logs = $DB->get_recordset_sql(
             "SELECT id, userid, timecreated
                FROM {logstore_standard_log}
               WHERE courseid = :courseid AND userid $insql
                 AND anonymous = 0 AND crud $crudsql
-              ORDER BY userid ASC, timecreated ASC",
+              ORDER BY userid ASC, timecreated ASC, id ASC",
             $params
         );
 
-        // Group by user
-        $bylogs = [];
-        foreach ($logs as $log) {
-            $bylogs[$log->userid][] = $log->timecreated;
-        }
-
-        // Calculate sessions per user
-        foreach ($bylogs as $uid => $times) {
-            if (empty($times)) continue;
-
-            $sessions = 1;
-            $total = 0;
-            $sessionstart = $times[0];
-            $prev = $times[0];
-            $first = $times[0];
-            $last = end($times);
-            $dates = [];
-
-            for ($i = 1; $i < count($times); $i++) {
-                $gap = $times[$i] - $prev;
-                if ($gap > $timeout) {
-                    // Close previous session
-                    $sessionduration = $prev - $sessionstart;
-                    $total += $sessionduration;
-                    $date = userdate($sessionstart, '%Y-%m-%d');
-                    $dates[$date] = ($dates[$date] ?? 0) + $sessionduration;
-
-                    // New session
-                    $sessions++;
-                    $sessionstart = $times[$i];
+        $currentuid = null;
+        $sessionstart = null;
+        $previous = null;
+        try {
+            foreach ($logs as $log) {
+                $uid = (int)$log->userid;
+                $timestamp = (int)$log->timecreated;
+                if ($currentuid !== $uid) {
+                    if ($currentuid !== null) {
+                        $duration = $previous - $sessionstart;
+                        $result[$currentuid]['total_seconds'] += $duration;
+                        $date = userdate($sessionstart, '%Y-%m-%d');
+                        $result[$currentuid]['dates'][$date] =
+                            ($result[$currentuid]['dates'][$date] ?? 0) + $duration;
+                    }
+                    $currentuid = $uid;
+                    $sessionstart = $timestamp;
+                    $previous = $timestamp;
+                    $result[$uid]['sessions'] = 1;
+                    $result[$uid]['first_login'] = $timestamp;
+                    $result[$uid]['last_login'] = $timestamp;
+                    continue;
                 }
-                $prev = $times[$i];
-            }
-            // Close last session using real duration (no invented time).
-            $lastduration = $prev - $sessionstart;
-            $total += $lastduration;
-            $date = userdate($sessionstart, '%Y-%m-%d');
-            $dates[$date] = ($dates[$date] ?? 0) + $lastduration;
 
-            $result[$uid] = [
-                'sessions'      => $sessions,
-                'total_seconds' => $total,
-                'first_login'   => $first,
-                'last_login'    => $last,
-                'dates'         => $dates,
-            ];
+                if ($timestamp - $previous > $timeout) {
+                    $duration = $previous - $sessionstart;
+                    $result[$uid]['total_seconds'] += $duration;
+                    $date = userdate($sessionstart, '%Y-%m-%d');
+                    $result[$uid]['dates'][$date] = ($result[$uid]['dates'][$date] ?? 0) + $duration;
+                    $result[$uid]['sessions']++;
+                    $sessionstart = $timestamp;
+                }
+                $previous = $timestamp;
+                $result[$uid]['last_login'] = $timestamp;
+            }
+        } finally {
+            $logs->close();
+        }
+        if ($currentuid !== null) {
+            $duration = $previous - $sessionstart;
+            $result[$currentuid]['total_seconds'] += $duration;
+            $date = userdate($sessionstart, '%Y-%m-%d');
+            $result[$currentuid]['dates'][$date] =
+                ($result[$currentuid]['dates'][$date] ?? 0) + $duration;
         }
     }
 
