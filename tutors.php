@@ -26,7 +26,6 @@
 
 require_once('../../config.php');
 require_once($CFG->dirroot . '/blocks/scormreport/lib_report.php');
-require_once($CFG->dirroot . '/blocks/scormreport/classes/license.php');
 
 $courseid = required_param('courseid', PARAM_INT);
 $course   = $DB->get_record('course', ['id' => $courseid], '*', MUST_EXIST);
