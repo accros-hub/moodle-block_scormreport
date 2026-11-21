@@ -79,12 +79,12 @@ function block_scormreport_get_data($courseid, $userid, $scormid, $context, $cou
     }
 
     // 5. SCOs per SCORM
-    list($insql_sc, $params_sc) = $DB->get_in_or_equal($scormids, SQL_PARAMS_NAMED, 'sc');
+    list($insqlsc, $paramssc) = $DB->get_in_or_equal($scormids, SQL_PARAMS_NAMED, 'sc');
     $allscos = $DB->get_records_sql(
         "SELECT id, scorm, title FROM {scorm_scoes}
-          WHERE scorm $insql_sc AND launch != ''
+          WHERE scorm $insqlsc AND launch != ''
           ORDER BY id ASC",
-        $params_sc
+        $paramssc
     );
     $scosbyscorm = [];
     foreach ($allscos as $sco) {
@@ -111,9 +111,9 @@ function block_scormreport_get_data($courseid, $userid, $scormid, $context, $cou
             'cmi.core.score.raw', 'cmi.score.raw',
             'cmi.core.lesson_status', 'cmi.completion_status', 'cmi.success_status',
         ];
-        list($insql_el, $params_el) = $DB->get_in_or_equal($elementnames, SQL_PARAMS_NAMED, 'nm');
+        list($insqlel, $paramsel) = $DB->get_in_or_equal($elementnames, SQL_PARAMS_NAMED, 'nm');
         $elementrows = $DB->get_records_sql(
-            "SELECT id, element FROM {scorm_element} WHERE element $insql_el", $params_el
+            "SELECT id, element FROM {scorm_element} WHERE element $insqlel", $paramsel
         );
         $elementids = [];
         foreach ($elementrows as $el) {
@@ -121,16 +121,16 @@ function block_scormreport_get_data($courseid, $userid, $scormid, $context, $cou
         }
 
         // 6. Attempts per (userid, scormid) — ALL + last for status
-        list($insql_u, $params_u) = $DB->get_in_or_equal($studentids, SQL_PARAMS_NAMED, 'us');
-        list($insql_sc2, $params_sc2) = $DB->get_in_or_equal($scormids, SQL_PARAMS_NAMED, 'xsc');
-        list($insql_u2, $params_u2)   = $DB->get_in_or_equal($studentids, SQL_PARAMS_NAMED, 'xus');
+        list($insqlu, $paramsu) = $DB->get_in_or_equal($studentids, SQL_PARAMS_NAMED, 'us');
+        list($insqlsc2, $paramssc2) = $DB->get_in_or_equal($scormids, SQL_PARAMS_NAMED, 'xsc');
+        list($insqlu2, $paramsu2)   = $DB->get_in_or_equal($studentids, SQL_PARAMS_NAMED, 'xus');
 
         // 6a. All attempts (for historical time and dates)
         $allattemptrows = $DB->get_records_sql(
             "SELECT sa.id, sa.userid, sa.scormid, sa.attempt
                FROM {scorm_attempt} sa
-              WHERE sa.scormid $insql_sc AND sa.userid $insql_u",
-            array_merge($params_sc, $params_u)
+              WHERE sa.scormid $insqlsc AND sa.userid $insqlu",
+            array_merge($paramssc, $paramsu)
         );
         $allattemptids = [];
         $allattemptmap = []; // [userid][scormid] => [attemptid1, attemptid2, ...]
@@ -148,13 +148,13 @@ function block_scormreport_get_data($courseid, $userid, $scormid, $context, $cou
               INNER JOIN (
                   SELECT userid, scormid, MAX(attempt) AS maxatt
                     FROM {scorm_attempt}
-                   WHERE scormid $insql_sc2 AND userid $insql_u2
+                   WHERE scormid $insqlsc2 AND userid $insqlu2
                    GROUP BY userid, scormid
               ) latest ON sa.userid = latest.userid
                       AND sa.scormid = latest.scormid
                       AND sa.attempt = latest.maxatt
-              WHERE sa.scormid $insql_sc AND sa.userid $insql_u",
-            array_merge($params_sc, $params_u, $params_sc2, $params_u2)
+              WHERE sa.scormid $insqlsc AND sa.userid $insqlu",
+            array_merge($paramssc, $paramsu, $paramssc2, $paramsu2)
         );
         $attemptmap = [];
         $attemptids = [];
@@ -170,14 +170,14 @@ function block_scormreport_get_data($courseid, $userid, $scormid, $context, $cou
         $valuesmap = [];
         if (!empty($attemptids) && !empty($elementids)) {
             $allelementids = array_values($elementids);
-            list($insql_elid, $params_elid) = $DB->get_in_or_equal($allelementids, SQL_PARAMS_NAMED, 'ei');
+            list($insqlelid, $paramselid) = $DB->get_in_or_equal($allelementids, SQL_PARAMS_NAMED, 'ei');
             foreach (array_chunk($attemptids, 500) as $chunk) {
-                list($insql_att, $params_att) = $DB->get_in_or_equal($chunk, SQL_PARAMS_NAMED, 'at');
+                list($insqlatt, $paramsatt) = $DB->get_in_or_equal($chunk, SQL_PARAMS_NAMED, 'at');
                 $cmirows = $DB->get_records_sql(
                     "SELECT id, attemptid, scoid, elementid, value
                        FROM {scorm_scoes_value}
-                      WHERE attemptid $insql_att AND elementid $insql_elid",
-                    array_merge($params_att, $params_elid)
+                      WHERE attemptid $insqlatt AND elementid $insqlelid",
+                    array_merge($paramsatt, $paramselid)
                 );
                 foreach ($cmirows as $row) {
                     $valuesmap[$row->attemptid][$row->scoid][$row->elementid] = $row->value;
@@ -195,7 +195,7 @@ function block_scormreport_get_data($courseid, $userid, $scormid, $context, $cou
                 if (isset($elementids[$en])) $timeelids[$en] = $elementids[$en];
             }
             if (!empty($timeelids)) {
-                list($insql_tel, $params_tel) = $DB->get_in_or_equal(array_values($timeelids), SQL_PARAMS_NAMED, 'tei');
+                list($insqltel, $paramstel) = $DB->get_in_or_equal(array_values($timeelids), SQL_PARAMS_NAMED, 'tei');
                 // Map attemptid → [userid, scormid]
                 $attemptowner = [];
                 foreach ($allattemptrows as $ar) {
@@ -206,14 +206,14 @@ function block_scormreport_get_data($courseid, $userid, $scormid, $context, $cou
                 // So we keep the MAXIMUM across attempts per SCO (the last attempt
                 // already includes the earlier ones), never the sum. This map is
                 // kept across chunks so attempts split between chunks still compare.
-                $persco_max = []; // key "userid|scormid|scoid" => ['userid','scormid','secs']
+                $perscomax = []; // key "userid|scormid|scoid" => ['userid','scormid','secs']
                 foreach (array_chunk($allattemptids, 500) as $chunk) {
-                    list($insql_tat, $params_tat) = $DB->get_in_or_equal($chunk, SQL_PARAMS_NAMED, 'tat');
+                    list($insqltat, $paramstat) = $DB->get_in_or_equal($chunk, SQL_PARAMS_NAMED, 'tat');
                     $timerows = $DB->get_records_sql(
                         "SELECT id, attemptid, scoid, elementid, value
                            FROM {scorm_scoes_value}
-                          WHERE attemptid $insql_tat AND elementid $insql_tel",
-                        array_merge($params_tat, $params_tel)
+                          WHERE attemptid $insqltat AND elementid $insqltel",
+                        array_merge($paramstat, $paramstel)
                     );
                     $perscovalues = [];
                     foreach ($timerows as $tr) {
@@ -233,14 +233,14 @@ function block_scormreport_get_data($courseid, $userid, $scormid, $context, $cou
                                 }
                             }
                             $key = $owner['userid'] . '|' . $ownerscormid . '|' . $scoid;
-                            if (!isset($persco_max[$key]) || $secs > $persco_max[$key]['secs']) {
-                                $persco_max[$key] = ['userid' => $owner['userid'], 'scormid' => $ownerscormid, 'secs' => $secs];
+                            if (!isset($perscomax[$key]) || $secs > $perscomax[$key]['secs']) {
+                                $perscomax[$key] = ['userid' => $owner['userid'], 'scormid' => $ownerscormid, 'secs' => $secs];
                             }
                         }
                     }
                 }
                 // Add the max time of each SCO to its SCORM total.
-                foreach ($persco_max as $info) {
+                foreach ($perscomax as $info) {
                     $timeallmap[$info['userid']][$info['scormid']] =
                         ($timeallmap[$info['userid']][$info['scormid']] ?? 0) + $info['secs'];
                 }
@@ -252,15 +252,15 @@ function block_scormreport_get_data($courseid, $userid, $scormid, $context, $cou
         $scoaccessmap = [];
         if (!empty($allattemptids)) {
             foreach (array_chunk($allattemptids, 500) as $chunk) {
-                list($insql_att2, $params_att2) = $DB->get_in_or_equal($chunk, SQL_PARAMS_NAMED, 'at2');
+                list($insqlatt2, $paramsatt2) = $DB->get_in_or_equal($chunk, SQL_PARAMS_NAMED, 'at2');
                 $accessrows = $DB->get_records_sql(
                     "SELECT MIN(sv.id) AS id, sa.userid, sa.scormid, sv.scoid,
                             MIN(sv.timemodified) AS fa, MAX(sv.timemodified) AS la
                        FROM {scorm_scoes_value} sv
                        JOIN {scorm_attempt} sa ON sa.id = sv.attemptid
-                      WHERE sv.attemptid $insql_att2
+                      WHERE sv.attemptid $insqlatt2
                       GROUP BY sa.userid, sa.scormid, sv.scoid",
-                    $params_att2
+                    $paramsatt2
                 );
                 foreach ($accessrows as $row) {
                     if (!isset($accessmap[$row->userid][$row->scormid])) {
@@ -368,7 +368,7 @@ function block_scormreport_get_data($courseid, $userid, $scormid, $context, $cou
                         }
                     }
                 }
-                $has_interactions = !empty($scorminteractions);
+                $hasinteractions = !empty($scorminteractions);
 
                 // Average score: only count SCORMs that actually have a test.
                 // A score of 0 with NO interactions is a theory-only SCORM that
@@ -376,7 +376,7 @@ function block_scormreport_get_data($courseid, $userid, $scormid, $context, $cou
                 // A 0 WITH interactions is a real failed test — count it.
                 if ($data['score'] !== false) {
                     $scoreval = (float)$data['score'];
-                    if ($scoreval != 0 || $has_interactions) {
+                    if ($scoreval != 0 || $hasinteractions) {
                         $scores[] = $scoreval;
                     }
                 }
@@ -409,7 +409,7 @@ function block_scormreport_get_data($courseid, $userid, $scormid, $context, $cou
                 // Display score: show "-" for theory SCORMs (score 0, no interactions).
                 if ($data['score'] === false) {
                     $displayscore = '-';
-                } else if ((float)$data['score'] == 0 && !$has_interactions) {
+                } else if ((float)$data['score'] == 0 && !$hasinteractions) {
                     $displayscore = '-';
                 } else {
                     $displayscore = $data['score'];
@@ -434,7 +434,7 @@ function block_scormreport_get_data($courseid, $userid, $scormid, $context, $cou
                     'scos'        => $multisco ? $data['scos'] : [],
                     'scormid'     => $scorm->id,
                     'userid'      => $student->id,
-                    'has_interactions' => $has_interactions,
+                    'has_interactions' => $hasinteractions,
                 ];
 
                 // Accumulate for the global dropdown.
@@ -568,16 +568,16 @@ function block_scormreport_build_singlesco($scorm, $student, $attemptid, $elemen
     $status = block_scormreport_calc_status($values, $elementids);
 
     $acc = $accessmap[$student->id][$scorm->id] ?? null;
-    $fa_ts = ($acc && !empty($acc->fa)) ? (int)$acc->fa : 0;
-    $la_ts = ($acc && !empty($acc->la)) ? (int)$acc->la : 0;
+    $fats = ($acc && !empty($acc->fa)) ? (int)$acc->fa : 0;
+    $lats = ($acc && !empty($acc->la)) ? (int)$acc->la : 0;
     return [
         'seconds'        => $totalseconds,
         'score'          => $score,
         'status'         => $status,
-        'firstaccess'    => $fa_ts ? userdate($fa_ts, '%d/%m/%Y %H:%M') : '-',
-        'lastaccess'     => $la_ts ? userdate($la_ts, '%d/%m/%Y %H:%M') : '-',
-        'firstaccess_ts' => $fa_ts,
-        'lastaccess_ts'  => $la_ts,
+        'firstaccess'    => $fats ? userdate($fats, '%d/%m/%Y %H:%M') : '-',
+        'lastaccess'     => $lats ? userdate($lats, '%d/%m/%Y %H:%M') : '-',
+        'firstaccess_ts' => $fats,
+        'lastaccess_ts'  => $lats,
         'multisco'       => false,
         'scos'           => [],
     ];
@@ -634,17 +634,17 @@ function block_scormreport_build_multisco($scorm, $student, $attemptid, $element
     $globalstatus = ($passed === $totalscos) ? 'passed' : 'incomplete';
     $score = empty($scores) ? false : (count($scores) === 1 ? $scores[0] : round(array_sum($scores) / count($scores), 1));
 
-    $fa_ts = ($firstaccess < PHP_INT_MAX) ? (int)$firstaccess : 0;
-    $la_ts = ($lastaccess > 0) ? (int)$lastaccess : 0;
+    $fats = ($firstaccess < PHP_INT_MAX) ? (int)$firstaccess : 0;
+    $lats = ($lastaccess > 0) ? (int)$lastaccess : 0;
 
     return [
         'seconds'        => $totalseconds,
         'score'          => $score,
         'status'         => $globalstatus,
-        'firstaccess'    => $fa_ts ? userdate($fa_ts, '%d/%m/%Y %H:%M') : '-',
-        'lastaccess'     => $la_ts ? userdate($la_ts, '%d/%m/%Y %H:%M') : '-',
-        'firstaccess_ts' => $fa_ts,
-        'lastaccess_ts'  => $la_ts,
+        'firstaccess'    => $fats ? userdate($fats, '%d/%m/%Y %H:%M') : '-',
+        'lastaccess'     => $lats ? userdate($lats, '%d/%m/%Y %H:%M') : '-',
+        'firstaccess_ts' => $fats,
+        'lastaccess_ts'  => $lats,
         'multisco'       => true,
         'scos'           => $scodetails,
         'totalscos'      => $totalscos,
@@ -880,7 +880,10 @@ function block_scormreport_get_connections(int $courseid, array $studentids, int
         array $crud = ['r', 'u']): array {
     global $DB;
 
-    if (empty($studentids)) return [];
+    if (empty($studentids)) {
+        return [];
+    }
+    $studentids = array_values(array_unique(array_map('intval', $studentids)));
 
     $result = [];
     foreach ($studentids as $uid) {

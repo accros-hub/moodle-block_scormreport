@@ -67,32 +67,32 @@ if (!empty($logofiles)) {
 }
 
 // Configurable threshold
-$apt_threshold = get_config('block_scormreport', 'apt_threshold');
-$apt_threshold = ($apt_threshold === false || $apt_threshold === '') ? 75 : (int)$apt_threshold;
-$apt_threshold = max(0, min(100, $apt_threshold));
-$deadline_tolerance = get_config('block_scormreport', 'deadline_tolerance');
-$deadline_tolerance = ($deadline_tolerance === false || $deadline_tolerance === '') ? 15 : (int)$deadline_tolerance;
-$deadline_tolerance = max(0, min(100, $deadline_tolerance));
+$aptthreshold = get_config('block_scormreport', 'apt_threshold');
+$aptthreshold = ($aptthreshold === false || $aptthreshold === '') ? 75 : (int)$aptthreshold;
+$aptthreshold = max(0, min(100, $aptthreshold));
+$deadlinetolerance = get_config('block_scormreport', 'deadline_tolerance');
+$deadlinetolerance = ($deadlinetolerance === false || $deadlinetolerance === '') ? 15 : (int)$deadlinetolerance;
+$deadlinetolerance = max(0, min(100, $deadlinetolerance));
 
 // ── Column preferences (same selection as the on-screen report) ──
 // Optional columns the user can show/hide. "student" is always shown.
-$pdf_optional_columns = ['username', 'email', 'dni', 'company', 'timescorm',
+$pdfoptionalcolumns = ['username', 'email', 'dni', 'company', 'timescorm',
     'pcttimecourse', 'score', 'pctvistos', 'pctsuperados', 'seen', 'passed',
     'attempts_total', 'firstaccess', 'lastaccess', 'progresscolumn', 'deadlinestatus'];
-$pdf_default_columns = ['company', 'timescorm', 'pcttimecourse', 'score',
+$pdfdefaultcolumns = ['company', 'timescorm', 'pcttimecourse', 'score',
     'pctsuperados', 'firstaccess', 'lastaccess', 'progresscolumn', 'deadlinestatus'];
-$pdf_colpref = get_user_preferences('block_scormreport_columns', null);
-if ($pdf_colpref === null) {
-    $pdf_visible = $pdf_default_columns;
+$pdfcolpref = get_user_preferences('block_scormreport_columns', null);
+if ($pdfcolpref === null) {
+    $pdfvisible = $pdfdefaultcolumns;
 } else {
-    $pdf_visible = ($pdf_colpref === '') ? [] : explode(',', $pdf_colpref);
+    $pdfvisible = ($pdfcolpref === '') ? [] : explode(',', $pdfcolpref);
 }
-$pdf_show = function($key) use ($pdf_visible) {
-    return in_array($key, $pdf_visible);
+$pdfshow = function($key) use ($pdfvisible) {
+    return in_array($key, $pdfvisible);
 };
 
 // Column definitions for the summary table: label, relative width, and value.
-$pdf_coldefs = [
+$pdfcoldefs = [
     'username'       => ['w' => 22, 'label' => get_string('username', 'block_scormreport'),      'val' => fn($r) => $r['username'] ?? ''],
     'email'          => ['w' => 40, 'label' => get_string('email', 'block_scormreport'),         'val' => fn($r) => $r['email'] ?? ''],
     'dni'            => ['w' => 22, 'label' => get_string('dni', 'block_scormreport'),           'val' => fn($r) => $r['dni'] ?? ''],
@@ -282,23 +282,23 @@ if ($userid > 0) {
     // Build the active column list: "student" is always first, then the
     // optional columns selected by the user (same as the on-screen report).
     $activecols = [];
-    foreach ($pdf_optional_columns as $ck) {
-        if ($pdf_show($ck)) $activecols[] = $ck;
+    foreach ($pdfoptionalcolumns as $ck) {
+        if ($pdfshow($ck)) $activecols[] = $ck;
     }
 
     // Compute widths: student fixed at 45mm; the rest scaled to fit the page.
     $usable = $pdf->getPageWidth() - 20; // left+right margins (10 each)
     $studentw = 45;
     $rawsum = 0;
-    foreach ($activecols as $ck) $rawsum += $pdf_coldefs[$ck]['w'];
+    foreach ($activecols as $ck) $rawsum += $pdfcoldefs[$ck]['w'];
     $avail = $usable - $studentw;
     $scale = ($rawsum > 0 && $rawsum > $avail) ? ($avail / $rawsum) : 1;
 
     // Header drawing closure (reused on page breaks).
-    $draw_summary_header = function() use ($pdf, $str, $activecols, $pdf_coldefs, $studentw, $scale) {
+    $drawsummaryheader = function() use ($pdf, $str, $activecols, $pdfcoldefs, $studentw, $scale) {
         $cells = [['w' => $studentw, 'text' => $str('student'), 'align' => 'C']];
         foreach ($activecols as $ck) {
-            $cells[] = ['w' => $pdf_coldefs[$ck]['w'] * $scale, 'text' => $pdf_coldefs[$ck]['label'], 'align' => 'C'];
+            $cells[] = ['w' => $pdfcoldefs[$ck]['w'] * $scale, 'text' => $pdfcoldefs[$ck]['label'], 'align' => 'C'];
         }
         $pdf->SetFillColor(0, 73, 110);
         $pdf->SetTextColor(255, 255, 255);
@@ -315,32 +315,32 @@ if ($userid > 0) {
         $pdf->SetFont('helvetica', '', 7);
     };
 
-    $draw_summary_header();
+    $drawsummaryheader();
 
     $fill = false;
     foreach ($globaldata as $row) {
         $pspct = (float)rtrim($row['pctsuperados'], '%');
-        $apto  = $pspct >= $apt_threshold ? $str('apt') : $str('notapt');
-        $dlstatus = block_scormreport_calc_deadline_status($pspct, $course->startdate ?? 0, $course->enddate ?? 0, $deadline_tolerance);
+        $apto  = $pspct >= $aptthreshold ? $str('apt') : $str('notapt');
+        $dlstatus = block_scormreport_calc_deadline_status($pspct, $course->startdate ?? 0, $course->enddate ?? 0, $deadlinetolerance);
 
         // Build the row cells matching the active columns.
         $cells = [['w' => $studentw, 'text' => $row['studentname'], 'align' => 'L']];
         foreach ($activecols as $ck) {
-            $w = $pdf_coldefs[$ck]['w'] * $scale;
+            $w = $pdfcoldefs[$ck]['w'] * $scale;
             if ($ck === 'progresscolumn') {
                 $text = $apto;
             } else if ($ck === 'deadlinestatus') {
                 $text = $dlstatus['label'];
             } else {
-                $text = (string)($pdf_coldefs[$ck]['val'])($row);
+                $text = (string)($pdfcoldefs[$ck]['val'])($row);
             }
             $cells[] = ['w' => $w, 'text' => $text, 'align' => ($ck === 'email' || $ck === 'company') ? 'L' : 'C'];
         }
 
-        block_scormreport_pdf_draw_paginated_row($pdf, $cells, function() use ($pdf, $course, $startdate, $enddate, $coursehours, $logopath, $str, $draw_summary_header) {
+        block_scormreport_pdf_draw_paginated_row($pdf, $cells, function() use ($pdf, $course, $startdate, $enddate, $coursehours, $logopath, $str, $drawsummaryheader) {
             $pdf->AddPage();
             block_scormreport_draw_header($pdf, $course, $startdate, $enddate, $coursehours, $logopath, $str);
-            $draw_summary_header();
+            $drawsummaryheader();
         }, $fill);
         $fill = !$fill;
     }

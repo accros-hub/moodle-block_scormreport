@@ -165,28 +165,28 @@ if ($ADMIN->fulltree) {
     }
 
     // Roles that see ALL courses in the dashboard.
-    $default_all = [];
+    $defaultall = [];
     foreach ($allroles as $r) {
-        if ($r->shortname === 'manager') $default_all[] = $r->id;
+        if ($r->shortname === 'manager') $defaultall[] = $r->id;
     }
     $settings->add(new admin_setting_configmultiselect(
         'block_scormreport/dashboard_roles_all',
         get_string('setting_dashboard_roles_all', 'block_scormreport'),
         get_string('setting_dashboard_roles_all_desc', 'block_scormreport'),
-        $default_all,
+        $defaultall,
         $roleoptions
     ));
 
     // Roles that see ONLY their own courses (enrolled with that role).
-    $default_own = [];
+    $defaultown = [];
     foreach ($allroles as $r) {
-        if (in_array($r->shortname, ['supervisor', 'profesor', 'gcurso'])) $default_own[] = $r->id;
+        if (in_array($r->shortname, ['supervisor', 'profesor', 'gcurso'])) $defaultown[] = $r->id;
     }
     $settings->add(new admin_setting_configmultiselect(
         'block_scormreport/dashboard_roles_own',
         get_string('setting_dashboard_roles_own', 'block_scormreport'),
         get_string('setting_dashboard_roles_own_desc', 'block_scormreport'),
-        $default_own,
+        $defaultown,
         $roleoptions
     ));
 
@@ -198,17 +198,17 @@ if ($ADMIN->fulltree) {
     ));
     // Default: teacher roles with or without editing rights, plus common custom tutor roles.
     $teacherarchetypes = ['editingteacher', 'teacher'];
-    $default_tutor = [];
+    $defaulttutor = [];
     foreach ($allroles as $r) {
         if (in_array($r->archetype, $teacherarchetypes) || in_array($r->shortname, ['profesor', 'tutor'])) {
-            $default_tutor[] = $r->id;
+            $defaulttutor[] = $r->id;
         }
     }
     $settings->add(new admin_setting_configmultiselect(
         'block_scormreport/tutor_roles',
         get_string('setting_tutor_roles', 'block_scormreport'),
         get_string('setting_tutor_roles_desc', 'block_scormreport'),
-        $default_tutor,
+        $defaulttutor,
         $roleoptions
     ));
 }

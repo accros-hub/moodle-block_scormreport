@@ -24,7 +24,6 @@
  */
 
 require_once('../../config.php');
-require_once($CFG->dirroot . '/blocks/scormreport/classes/license.php');
 
 use block_scormreport\license;
 

@@ -344,6 +344,10 @@ final class lib_report_test extends \advanced_testcase {
         $this->assertSame(720, $data[$user->id]['total_seconds']);
         $this->assertSame($base, $data[$user->id]['first_login']);
         $this->assertSame(end($events), $data[$user->id]['last_login']);
+        // Repeated IDs, including across the 500-user chunks, must not add duration twice.
+        $studentids = array_merge([$user->id], range($user->id + 1, $user->id + 499), [$user->id]);
+        $withduplicates = block_scormreport_get_connections($course->id, $studentids);
+        $this->assertSame($data[$user->id], $withduplicates[$user->id]);
     }
 
 }

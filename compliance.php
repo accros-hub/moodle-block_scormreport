@@ -41,9 +41,9 @@ if (!in_array($filter, ['active', 'recent', 'all'])) {
 }
 
 $str = function($key, $a = null) { return get_string($key, 'block_scormreport', $a); };
-$apt_threshold = get_config('block_scormreport', 'apt_threshold');
-$apt_threshold = ($apt_threshold === false || $apt_threshold === '') ? 75 : (int)$apt_threshold;
-$apt_threshold = max(0, min(100, $apt_threshold));
+$aptthreshold = get_config('block_scormreport', 'apt_threshold');
+$aptthreshold = ($aptthreshold === false || $aptthreshold === '') ? 75 : (int)$aptthreshold;
+$aptthreshold = max(0, min(100, $aptthreshold));
 
 $PAGE->set_url('/blocks/scormreport/compliance.php', ['filter' => $filter]);
 $PAGE->set_context($context);
@@ -73,10 +73,10 @@ if ($filter === 'active') {
 // ── Role-based course visibility ──
 // Site admins and users with a "see all" role see every course.
 // Users with a "see own" role see only courses where they are enrolled with that role.
-$sees_all = is_siteadmin();
-$own_course_ids = null; // null = no restriction; array = restrict to these ids.
+$seesall = is_siteadmin();
+$owncourseids = null; // null = no restriction; array = restrict to these ids.
 
-if (!$sees_all) {
+if (!$seesall) {
     $rolesall = get_config('block_scormreport', 'dashboard_roles_all');
     $rolesown = get_config('block_scormreport', 'dashboard_roles_own');
     $rolesall = $rolesall ? explode(',', $rolesall) : [];
@@ -87,13 +87,13 @@ if (!$sees_all) {
         $sysroles = $DB->get_fieldset_select('role_assignments', 'roleid',
             'userid = :uid', ['uid' => $USER->id]);
         foreach ($rolesall as $rid) {
-            if (in_array($rid, $sysroles)) { $sees_all = true; break; }
+            if (in_array($rid, $sysroles)) { $seesall = true; break; }
         }
     }
 
-    if (!$sees_all) {
+    if (!$seesall) {
         // Collect courses where the user is enrolled with any "see own" role.
-        $own_course_ids = [];
+        $owncourseids = [];
         if (!empty($rolesown)) {
             list($rinsql, $rparams) = $DB->get_in_or_equal($rolesown, SQL_PARAMS_NAMED, 'r');
             $rparams['uid'] = $USER->id;
@@ -105,19 +105,19 @@ if (!$sees_all) {
                 $rparams
             );
             foreach ($rows as $row) {
-                $own_course_ids[] = $row->courseid;
+                $owncourseids[] = $row->courseid;
             }
         }
         // If the user has no qualifying role and no own courses, show nothing.
-        if (empty($own_course_ids)) {
-            $own_course_ids = [-1]; // impossible id → empty result
+        if (empty($owncourseids)) {
+            $owncourseids = [-1]; // impossible id → empty result
         }
     }
 }
 
 // Apply role restriction to the WHERE clause.
-if (!$sees_all && $own_course_ids !== null) {
-    list($cinsql, $cparams) = $DB->get_in_or_equal($own_course_ids, SQL_PARAMS_NAMED, 'oc');
+if (!$seesall && $owncourseids !== null) {
+    list($cinsql, $cparams) = $DB->get_in_or_equal($owncourseids, SQL_PARAMS_NAMED, 'oc');
     $where .= " AND c.id $cinsql";
     $params = array_merge($params, $cparams);
 }
@@ -165,19 +165,19 @@ foreach ($courses as $c) {
     if ($numstudents === 0) continue;
 
     $apto = 0; $noapto = 0; $risk = 0; $noactivity = 0;
-    $deadline_tolerance = get_config('block_scormreport', 'deadline_tolerance');
-$deadline_tolerance = ($deadline_tolerance === false || $deadline_tolerance === '') ? 15 : (int)$deadline_tolerance;
-$deadline_tolerance = max(0, min(100, $deadline_tolerance));
+    $deadlinetolerance = get_config('block_scormreport', 'deadline_tolerance');
+$deadlinetolerance = ($deadlinetolerance === false || $deadlinetolerance === '') ? 15 : (int)$deadlinetolerance;
+$deadlinetolerance = max(0, min(100, $deadlinetolerance));
 
     foreach ($rd['globaldata'] as $row) {
         $pct = (float)rtrim($row['pctsuperados'], '%');
-        if ($pct >= $apt_threshold) {
+        if ($pct >= $aptthreshold) {
             $apto++;
         } else {
             $noapto++;
         }
         // Deadline risk
-        $dl = block_scormreport_calc_deadline_status($pct, $c->startdate ?? 0, $c->enddate ?? 0, $deadline_tolerance);
+        $dl = block_scormreport_calc_deadline_status($pct, $c->startdate ?? 0, $c->enddate ?? 0, $deadlinetolerance);
         if ($dl['status'] === 'atrisk' || $dl['status'] === 'finished') {
             $risk++;
         }

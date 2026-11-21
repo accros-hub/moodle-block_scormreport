@@ -100,8 +100,8 @@ function xmldb_block_scormreport_install() {
                 'linktarget'   => '',
             ]),
         ];
-        $catctrl_for_field = \core_customfield\category_controller::create($categoryid);
-        $fieldctrl = \core_customfield\field_controller::create(0, $fielddata, $catctrl_for_field);
+        $catctrlforfield = \core_customfield\category_controller::create($categoryid);
+        $fieldctrl = \core_customfield\field_controller::create(0, $fielddata, $catctrlforfield);
         $fieldctrl->save();
 
         // Flag that we created the field (for cleanup on uninstall).

@@ -29,8 +29,8 @@ $minpct   = optional_param('minpct',   0,   PARAM_INT);
 $action   = optional_param('action',  'preview', PARAM_ALPHA);
 $subject  = optional_param('subject',  '', PARAM_TEXT);
 $message  = optional_param('message',  '', PARAM_RAW);
-$default_channel = get_config('block_scormreport', 'default_channel') ?: 'internal';
-$channel  = optional_param('channel', $default_channel, PARAM_ALPHA);
+$defaultchannel = get_config('block_scormreport', 'default_channel') ?: 'internal';
+$channel  = optional_param('channel', $defaultchannel, PARAM_ALPHA);
 
 // Validar valores permitidos
 if ($minpct > 0 && !in_array($minpct, [25, 50, 75, 100])) {
@@ -67,8 +67,8 @@ $globaldata = $reportdata['globaldata'];
 
 // Only filter if a percentage was selected
 $inactive = [];
-$minpct_selected = ($minpct > 0);
-if ($minpct_selected) {
+$minpctselected = ($minpct > 0);
+if ($minpctselected) {
     $inactive = array_filter($globaldata, function($row) use ($minpct) {
         return (float)rtrim($row['pctsuperados'], '%') < $minpct;
     });
@@ -77,30 +77,30 @@ if ($minpct_selected) {
 // ─── Check if SMTP is configured ───
 
 // ─── Defaults ────────────────────────────────────────────────────────────────
-$default_subject = $str('reminderdefaultsubject', $course->fullname);
-$default_message = $str('reminderdefaultmessage');
+$defaultsubject = $str('reminderdefaultsubject', $course->fullname);
+$defaultmessage = $str('reminderdefaultmessage');
 
-$preview_name   = '-';
-$preview_vistos = '-';
+$previewname   = '-';
+$previewvistos = '-';
 if (!empty($inactive)) {
     $first = reset($inactive);
-    $preview_name   = $first['studentname'];
-    $preview_vistos = $first['pctsuperados'];
+    $previewname   = $first['studentname'];
+    $previewvistos = $first['pctsuperados'];
 }
 
 // ─── Send ────────────────────────────────────────────────────────────────────
-$sent_email    = 0;
-$sent_internal = 0;
+$sentemail    = 0;
+$sentinternal = 0;
 $errors        = 0;
-$sent_names    = [];
+$sentnames    = [];
 
 if ($action === 'send') {
     require_sesskey();
 
     if (!empty($subject) && !empty($message) && !empty($inactive)) {
     // Filter by checkbox-selected students
-    $selected_users = optional_param_array('selected_users', [], PARAM_INT);
-    if (empty($selected_users)) {
+    $selectedusers = optional_param_array('selected_users', [], PARAM_INT);
+    if (empty($selectedusers)) {
         // No recipients selected — send nothing
         $redirecturl = new moodle_url('/blocks/scormreport/send_reminder.php', [
             'courseid' => $courseid, 'minpct' => $minpct,
@@ -108,8 +108,8 @@ if ($action === 'send') {
         \core\notification::warning(get_string('norecipients', 'block_scormreport'));
         redirect($redirecturl);
     }
-    $inactive = array_filter($inactive, function($row) use ($selected_users) {
-        return in_array((int)$row['userid'], $selected_users, true);
+    $inactive = array_filter($inactive, function($row) use ($selectedusers) {
+        return in_array((int)$row['userid'], $selectedusers, true);
     });
 
     $from = $DB->get_record('user', ['id' => $USER->id]);
@@ -123,19 +123,19 @@ if ($action === 'send') {
         $alumnoname    = fullname($touser);
         $cursofullname = $course->fullname;
         $fechahoy      = userdate(time(), '%d/%m/%Y');
-        $pctvistos_u   = $row['pctsuperados'];
+        $pctvistosu   = $row['pctsuperados'];
 
         $personalmsg = $str('remindergreeting', $alumnoname) . "\n\n"
             . $message . "\n\n"
             . "---\n"
             . $str('remindercourse', $cursofullname) . "\n"
-            . $str('reminderprogress', $pctvistos_u) . "\n"
+            . $str('reminderprogress', $pctvistosu) . "\n"
             . $str('reminderdate', $fechahoy) . "\n";
 
         $personalsubj = $subject . " — " . $cursofullname;
 
         $ok = false;
-        $pct_val = (float)rtrim($row['pctsuperados'] ?? '0', '%');
+        $pctval = (float)rtrim($row['pctsuperados'] ?? '0', '%');
         $now = time();
 
         if ($channel === 'email' || $channel === 'both') {
@@ -144,7 +144,7 @@ if ($action === 'send') {
                 strip_tags($personalmsg),
                 nl2br(htmlspecialchars($personalmsg))
             );
-            if ($result) { $sent_email++; $ok = true; }
+            if ($result) { $sentemail++; $ok = true; }
             else $errors++;
 
             // Log email channel independently
@@ -153,7 +153,7 @@ if ($action === 'send') {
                 'courseid'    => $courseid,
                 'channel'     => 'email',
                 'reason'      => "manual reminder, minpct={$minpct}",
-                'progress'    => $pct_val,
+                'progress'    => $pctval,
                 'threshold'   => $minpct,
                 'status'      => $result ? 'sent' : 'failed',
                 'senderid'    => $USER->id,
@@ -178,7 +178,7 @@ if ($action === 'send') {
             $eventdata->contexturlname    = $course->fullname;
 
             $result = message_send($eventdata);
-            if ($result) { $sent_internal++; $ok = true; }
+            if ($result) { $sentinternal++; $ok = true; }
             else $errors++;
 
             // Log internal channel independently
@@ -187,7 +187,7 @@ if ($action === 'send') {
                 'courseid'    => $courseid,
                 'channel'     => 'internal',
                 'reason'      => "manual reminder, minpct={$minpct}",
-                'progress'    => $pct_val,
+                'progress'    => $pctval,
                 'threshold'   => $minpct,
                 'status'      => $result ? 'sent' : 'failed',
                 'senderid'    => $USER->id,
@@ -196,7 +196,7 @@ if ($action === 'send') {
         }
 
         if ($ok) {
-            $sent_names[] = fullname($touser);
+            $sentnames[] = fullname($touser);
         }
     }
     } // end if
@@ -207,14 +207,14 @@ if ($action === 'send') {
         'minpct'   => $minpct,
     ]);
 
-    if ($sent_email > 0) {
+    if ($sentemail > 0) {
         $a = new stdClass();
-        $a->count = $sent_email;
-        $a->names = implode(', ', array_map('htmlspecialchars', array_unique($sent_names)));
+        $a->count = $sentemail;
+        $a->names = implode(', ', array_map('htmlspecialchars', array_unique($sentnames)));
         \core\notification::success($str('emailsentto', $a));
     }
-    if ($sent_internal > 0) {
-        \core\notification::success($str('internalsentto', $sent_internal));
+    if ($sentinternal > 0) {
+        \core\notification::success($str('internalsentto', $sentinternal));
     }
     if ($errors > 0) {
         \core\notification::warning($str('senderrors', $errors));
@@ -260,9 +260,9 @@ echo $OUTPUT->render_from_template('block_scormreport/reminder_form', [
     'percentoptions' => $percentoptions,
     'oftopicspassed' => $str('oftopicspassed'),
     'recipientlistheading' => $str('recipientlist', count($inactive)),
-    'selectpercentfirst' => !$minpct_selected,
+    'selectpercentfirst' => !$minpctselected,
     'selectpercentfirstlabel' => $str('selectpercentfirst'),
-    'norecipients' => $minpct_selected && empty($inactive),
+    'norecipients' => $minpctselected && empty($inactive),
     'norecipientslabel' => $str('norecipientsbelow', $minpct),
     'hasrecipients' => !empty($inactive),
     'filterall' => $str('filterall'),
@@ -279,11 +279,11 @@ echo $OUTPUT->render_from_template('block_scormreport/reminder_form', [
     'messageautogreeting' => $str('messageautogreeting'),
     'messageautobody' => $str('messageautobody'),
     'messageautofooter' => $str('messageautofooter'),
-    'previewfor' => $str('previewfor', $preview_name),
+    'previewfor' => $str('previewfor', $previewname),
     'subjectlabel' => $str('subjectlabel'),
     'messagelabel' => $str('messagelabel'),
-    'subject' => $subject ?: $default_subject,
-    'message' => $message ?: $default_message,
+    'subject' => $subject ?: $defaultsubject,
+    'message' => $message ?: $defaultmessage,
     'confirmtext' => $str('confirmsendn', '__COUNT__'),
     'norecipientstext' => $str('norecipients'),
     'sendbefore' => $sendparts[0],
@@ -292,16 +292,16 @@ echo $OUTPUT->render_from_template('block_scormreport/reminder_form', [
 ]);
 
 // JS preview — build header/footer with the real values in PHP
-$preview_header = $str('remindergreeting', $preview_name) . "\n\n";
-$preview_footer = "---\n"
+$previewheader = $str('remindergreeting', $previewname) . "\n\n";
+$previewfooter = "---\n"
     . $str('remindercourse', $course->fullname) . "\n"
-    . $str('reminderprogress', $preview_vistos) . "\n"
+    . $str('reminderprogress', $previewvistos) . "\n"
     . $str('reminderdate', userdate(time(), '%d/%m/%Y'));
 
 
 $PAGE->requires->js_call_amd('block_scormreport/reminder', 'init', [[
-    'previewHeader' => $preview_header,
-    'previewFooter' => $preview_footer,
+    'previewHeader' => $previewheader,
+    'previewFooter' => $previewfooter,
 ]]);
 
 echo $OUTPUT->footer();

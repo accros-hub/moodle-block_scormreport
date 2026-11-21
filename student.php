@@ -62,9 +62,9 @@ $reportdata  = block_scormreport_get_data($courseid, $userid, 0, $context, $cour
 $coursehours = $reportdata['coursehours'];
 
 // Keep only SCORMs visible to the student
-$detaildata_all = $reportdata['detaildata'];
+$detaildataall = $reportdata['detaildata'];
 $detaildata = [];
-foreach ($detaildata_all as $row) {
+foreach ($detaildataall as $row) {
     if (in_array($row['scormid'], $visiblescormids)) {
         // Add 'attempted' and 'time' fields used by the HTML view
         $row['attempted'] = ($row['status'] !== 'notattempted');
@@ -96,8 +96,8 @@ $totalseconds = 0;
 $scores       = [];
 $seen         = 0;
 $passed       = 0;
-$firstaccess_ts = [];
-$lastaccess_ts  = [];
+$firstaccessts = [];
+$lastaccessts  = [];
 
 foreach ($detaildata as $row) {
     if ($row['attempted']) {
@@ -153,7 +153,7 @@ if (!empty($coursehours) && is_numeric(trim($coursehours))) {
         }
     }
 }
-$sumpcttotal_str = $sumpcttotal > 0 ? round($sumpcttotal, 1) . '%' : '-';
+$sumpcttotalstr = $sumpcttotal > 0 ? round($sumpcttotal, 1) . '%' : '-';
 
 if (count($scores) === 0)     $notamedia = '-';
 elseif (count($scores) === 1) $notamedia = $scores[0];
@@ -291,7 +291,7 @@ if (empty($detaildata)) {
         <tr class="table-primary font-weight-bold">
             <td><strong>' . get_string('allscorms', 'block_scormreport') . '</strong></td>
             <td class="text-center font-monospace"><strong>' . block_scormreport_hms($totalseconds) . '</strong></td>
-            <td class="text-center"><strong>' . $sumpcttotal_str . '</strong></td>
+            <td class="text-center"><strong>' . $sumpcttotalstr . '</strong></td>
             <td class="text-center"><strong>' . ($notamedia !== '-' ? $notamedia : '-') . '</strong></td>
             <td class="text-center"></td>
             <td class="text-center">' . $globalfirstaccess . '</td>

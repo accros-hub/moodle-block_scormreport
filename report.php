@@ -61,19 +61,19 @@ if (!\block_scormreport\license::course_allowed($course)) {
 // Optional columns the user can show/hide. Fixed columns (student, topics,
 // fullreport, logentries) are always shown and not listed here.
 // Truncate a company name to a maximum length with an ellipsis.
-$company_short = function($name, $max = 30) {
+$companyshort = function($name, $max = 30) {
     $name = (string)$name;
     if (mb_strlen($name) <= $max) return $name;
     return mb_substr($name, 0, $max - 1) . '…';
 };
 
-$optional_columns = ['username', 'email', 'dni', 'company', 'timescorm',
+$optionalcolumns = ['username', 'email', 'dni', 'company', 'timescorm',
     'pcttimecourse', 'score', 'pctvistos', 'pctsuperados', 'seen', 'passed',
     'attempts_total', 'firstaccess', 'lastaccess', 'progresscolumn',
     'deadlinestatus', 'evidencebutton', 'connections', 'diploma'];
 
 // Columns shown by default the first time (keep the original compact view).
-$default_columns = ['company', 'timescorm', 'pcttimecourse', 'score',
+$defaultcolumns = ['company', 'timescorm', 'pcttimecourse', 'score',
     'pctsuperados', 'firstaccess', 'lastaccess', 'progresscolumn',
     'deadlinestatus', 'evidencebutton', 'connections', 'diploma'];
 
@@ -82,7 +82,7 @@ $savecols = optional_param('savecols', 0, PARAM_INT);
 if ($savecols && confirm_sesskey()) {
     $selected = optional_param_array('cols', [], PARAM_ALPHANUMEXT);
     // Keep only valid optional column keys.
-    $selected = array_values(array_intersect($selected, $optional_columns));
+    $selected = array_values(array_intersect($selected, $optionalcolumns));
     set_user_preference('block_scormreport_columns', implode(',', $selected));
     redirect(new moodle_url('/blocks/scormreport/report.php', ['courseid' => $courseid]));
 }
@@ -90,53 +90,53 @@ if ($savecols && confirm_sesskey()) {
 // Load the user's column preference (default: all optional columns visible).
 $colpref = get_user_preferences('block_scormreport_columns', null);
 if ($colpref === null) {
-    $visible_cols = $default_columns; // first time: show the default compact set
+    $visiblecols = $defaultcolumns; // first time: show the default compact set
 } else {
-    $visible_cols = ($colpref === '') ? [] : explode(',', $colpref);
+    $visiblecols = ($colpref === '') ? [] : explode(',', $colpref);
 }
 // Helper: is an optional column visible?
-$show_col = function($key) use ($visible_cols) {
-    return in_array($key, $visible_cols);
+$showcol = function($key) use ($visiblecols) {
+    return in_array($key, $visiblecols);
 };
 
 // Configurable settings
-$apt_threshold = get_config('block_scormreport', 'apt_threshold');
-$apt_threshold = ($apt_threshold === false || $apt_threshold === '') ? 75 : (int)$apt_threshold;
-$apt_threshold = max(0, min(100, $apt_threshold));
-$deadline_tolerance = get_config('block_scormreport', 'deadline_tolerance');
-$deadline_tolerance = ($deadline_tolerance === false || $deadline_tolerance === '') ? 15 : (int)$deadline_tolerance;
-$deadline_tolerance = max(0, min(100, $deadline_tolerance));
+$aptthreshold = get_config('block_scormreport', 'apt_threshold');
+$aptthreshold = ($aptthreshold === false || $aptthreshold === '') ? 75 : (int)$aptthreshold;
+$aptthreshold = max(0, min(100, $aptthreshold));
+$deadlinetolerance = get_config('block_scormreport', 'deadline_tolerance');
+$deadlinetolerance = ($deadlinetolerance === false || $deadlinetolerance === '') ? 15 : (int)$deadlinetolerance;
+$deadlinetolerance = max(0, min(100, $deadlinetolerance));
 
 // Determine if the course has ended (final Apt/Not-apt) or is still active (threshold labels).
-$course_ended = (!empty($course->enddate) && $course->enddate < time());
-$progress_ok_label  = $course_ended ? get_string('final_apt', 'block_scormreport')    : get_string('inprogress_ok', 'block_scormreport');
-$progress_no_label  = $course_ended ? get_string('final_notapt', 'block_scormreport') : get_string('inprogress_no', 'block_scormreport');
+$courseended = (!empty($course->enddate) && $course->enddate < time());
+$progressoklabel  = $courseended ? get_string('final_apt', 'block_scormreport')    : get_string('inprogress_ok', 'block_scormreport');
+$progressnolabel  = $courseended ? get_string('final_notapt', 'block_scormreport') : get_string('inprogress_no', 'block_scormreport');
 
 // Toggle automatic reminders
-$autoreminder_toggle = optional_param('autoreminder_toggle', -1, PARAM_INT);
-if ($autoreminder_toggle >= 0 && $cansendreminders && is_siteadmin()) {
+$autoremindertoggle = optional_param('autoreminder_toggle', -1, PARAM_INT);
+if ($autoremindertoggle >= 0 && $cansendreminders && is_siteadmin()) {
     require_sesskey();
-    set_config('autoreminder_enabled', $autoreminder_toggle ? 1 : 0, 'block_scormreport');
+    set_config('autoreminder_enabled', $autoremindertoggle ? 1 : 0, 'block_scormreport');
     $redirecturl = new moodle_url('/blocks/scormreport/report.php', ['courseid' => $courseid]);
     redirect($redirecturl);
 }
-$autoreminder_enabled = (bool)get_config('block_scormreport', 'autoreminder_enabled');
+$autoreminderenabled = (bool)get_config('block_scormreport', 'autoreminder_enabled');
 
 // Detect if mod_diploma is installed and the course has a diploma activity
-$has_diploma = false;
-$diploma_cmid = 0;
+$hasdiploma = false;
+$diplomacmid = 0;
 if ($DB->record_exists('modules', ['name' => 'diploma'])) {
-    $diploma_cms = $DB->get_records_sql(
+    $diplomacms = $DB->get_records_sql(
         "SELECT cm.id FROM {course_modules} cm
            JOIN {modules} m ON m.id = cm.module
           WHERE cm.course = :courseid AND m.name = 'diploma'
             AND cm.deletioninprogress = 0",
         ['courseid' => $courseid], 0, 1
     );
-    if (!empty($diploma_cms)) {
-        $diploma_cm = reset($diploma_cms);
-        $has_diploma = true;
-        $diploma_cmid = $diploma_cm->id;
+    if (!empty($diplomacms)) {
+        $diplomacm = reset($diplomacms);
+        $hasdiploma = true;
+        $diplomacmid = $diplomacm->id;
     }
 }
 
@@ -156,9 +156,9 @@ if ($download) {
 
     // PhpSpreadsheet ships with Moodle and is loaded by the core autoloader.
     require_once($CFG->libdir . '/excellib.class.php');
-    $phpspreadsheet_loaded = class_exists('\\PhpOffice\\PhpSpreadsheet\\Spreadsheet');
+    $phpspreadsheetloaded = class_exists('\\PhpOffice\\PhpSpreadsheet\\Spreadsheet');
 
-    if ($phpspreadsheet_loaded) {
+    if ($phpspreadsheetloaded) {
         $spreadsheet = new \PhpOffice\PhpSpreadsheet\Spreadsheet();
         $sheet       = $spreadsheet->getActiveSheet();
         $sheet->setTitle(get_string('sheettitle', 'block_scormreport'));
@@ -238,7 +238,7 @@ if ($download) {
             foreach (['username','email','dni','company','timescorm','pcttimecourse',
                       'score','pctvistos','pctsuperados','seen','passed','attempts_total',
                       'firstaccess','lastaccess'] as $ck) {
-                if ($show_col($ck)) $excelcols[] = $ck;
+                if ($showcol($ck)) $excelcols[] = $ck;
             }
 
             // Header row.
@@ -438,7 +438,7 @@ if (!$isdetail) {
         'diploma'        => get_string('diploma', 'block_scormreport'),
     ];
     // Offer only the columns that can appear for this user and course.
-    if (!$has_diploma) {
+    if (!$hasdiploma) {
         // The Diploma column needs mod_diploma and a diploma activity in this course.
         unset($collabels['diploma']);
     }
@@ -465,15 +465,15 @@ if (!$isdetail) {
                 <input type="hidden" name="savecols" value="1">
                 <div style="padding:22px;display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px 18px;">';
     foreach ($collabels as $key => $label) {
-        $checked = $show_col($key) ? ' checked' : '';
+        $checked = $showcol($key) ? ' checked' : '';
         echo '<label style="display:inline-flex;align-items:center;gap:8px;font-weight:500;
             padding:6px 10px;border:1px solid #e3e8ee;border-radius:8px;cursor:pointer;">
             <input type="checkbox" name="cols[]" value="' . $key . '"' . $checked . '> ' . $label . '</label>';
     }
     // Columns not offered here keep their saved state (for example Diploma in a
     // course without a diploma activity stays on for the courses that have one).
-    foreach ($optional_columns as $key) {
-        if (!isset($collabels[$key]) && $show_col($key)) {
+    foreach ($optionalcolumns as $key) {
+        if (!isset($collabels[$key]) && $showcol($key)) {
             echo '<input type="hidden" name="cols[]" value="' . $key . '">';
         }
     }
@@ -562,11 +562,11 @@ echo '
         <label>' . get_string('filterby', 'block_scormreport') . '
             <select name="userid" class="form-control" onchange="this.form.submit()">
                 <option value="0">' . get_string('allstudents', 'block_scormreport') . '</option>';
-$sorted_students = $students;
-usort($sorted_students, function($a, $b) {
+$sortedstudents = $students;
+usort($sortedstudents, function($a, $b) {
     return strcasecmp(fullname($a), fullname($b));
 });
-foreach ($sorted_students as $s) {
+foreach ($sortedstudents as $s) {
     $sel = ($userid == $s->id) ? ' selected' : '';
     echo '<option value="' . $s->id . '"' . $sel . '>'
         . htmlspecialchars(fullname($s)) . '</option>';
@@ -594,7 +594,7 @@ if (!$isdetail) {
         <select id="js-filter-company" class="form-control filter-select-wide">
             <option value="">' . get_string('filterallcompanies', 'block_scormreport') . '</option>';
     foreach ($companies as $comp) {
-        echo '<option value="' . htmlspecialchars(strtolower($comp), ENT_QUOTES) . '" title="' . htmlspecialchars($comp, ENT_QUOTES) . '">' . htmlspecialchars($company_short($comp)) . '</option>';
+        echo '<option value="' . htmlspecialchars(strtolower($comp), ENT_QUOTES) . '" title="' . htmlspecialchars($comp, ENT_QUOTES) . '">' . htmlspecialchars($companyshort($comp)) . '</option>';
     }
     echo '</select></label>';
 }
@@ -648,7 +648,7 @@ $jsparams = [
     'showingTemplate' => get_string('showingxofy', 'block_scormreport', (object)['visible' => '__VISIBLE__', 'total' => '__TOTAL__']),
     'aptLabel'        => get_string('apt', 'block_scormreport'),
     'notaptLabel'     => get_string('notapt', 'block_scormreport'),
-    'aptThreshold'    => $apt_threshold,
+    'aptThreshold'    => $aptthreshold,
     'strViewtopics'   => get_string('viewtopics', 'block_scormreport'),
     'strHidetopics'   => get_string('hidetopics', 'block_scormreport'),
 ];
@@ -668,16 +668,16 @@ if ($canexport) {
         'courseid' => $courseid, 'userid' => $userid,
         'scormid'  => $scormid,  'download' => 1,
     ]);
-    $excel_icon = '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">'
+    $excelicon = '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">'
         . '<rect width="24" height="24" rx="4" fill="#1D6F42"/>'
         . '<text x="12" y="16" font-size="11" font-weight="bold" fill="white" text-anchor="middle" font-family="Arial,sans-serif">X</text>'
         . '<polyline points="16,14 19,17 16,20" stroke="white" stroke-width="1.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/>'
         . '<line x1="10" y1="17" x2="19" y2="17" stroke="white" stroke-width="1.5" stroke-linecap="round"/>'
         . '</svg>';
-    $excel_label = '<span style="display:inline-flex;align-items:center;gap:8px;">'
-        . $excel_icon . ' ' . get_string('exportexcel', 'block_scormreport')
+    $excellabel = '<span style="display:inline-flex;align-items:center;gap:8px;">'
+        . $excelicon . ' ' . get_string('exportexcel', 'block_scormreport')
         . '</span>';
-    echo html_writer::link($exporturl, $excel_label,
+    echo html_writer::link($exporturl, $excellabel,
         ['class' => 'btn btn-success mb-3',
          'style' => 'background:#1D6F42;border-color:#1D6F42;font-weight:600;']);
 }
@@ -696,12 +696,12 @@ if (!$isdetail && $cansendreminders) {
 if ($canexport) {
     $pdfurl = new moodle_url('/blocks/scormreport/generate_report_pdf.php',
         ['courseid' => $courseid]);
-    $pdf_icon = '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">'
+    $pdficon = '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">'
         . '<rect width="24" height="24" rx="4" fill="#c0392b"/>'
         . '<text x="12" y="16" font-size="9" font-weight="bold" fill="white" text-anchor="middle" font-family="Arial">PDF</text>'
         . '</svg>';
     echo ' ' . html_writer::link($pdfurl,
-        '<span style="display:inline-flex;align-items:center;gap:8px;">' . $pdf_icon . ' ' . get_string('printreport', 'block_scormreport') . '</span>',
+        '<span style="display:inline-flex;align-items:center;gap:8px;">' . $pdficon . ' ' . get_string('printreport', 'block_scormreport') . '</span>',
         ['class' => 'btn mb-3',
          'style' => 'background:#c0392b;border-color:#c0392b;color:#fff;font-weight:600;',
          'target' => '_blank']);
@@ -709,15 +709,15 @@ if ($canexport) {
 
 // Toggle automatic reminders
 if ($cansendreminders && is_siteadmin()) {
-    $toggleval = $autoreminder_enabled ? 0 : 1;
+    $toggleval = $autoreminderenabled ? 0 : 1;
     $toggleurl = new moodle_url('/blocks/scormreport/report.php', [
         'courseid' => $courseid,
         'autoreminder_toggle' => $toggleval,
         'sesskey' => sesskey(),
     ]);
-    $toggleclass = $autoreminder_enabled ? 'btn-success' : 'btn-outline-secondary';
-    $toggleicon = $autoreminder_enabled ? '🔔' : '🔕';
-    $toggletext = $autoreminder_enabled
+    $toggleclass = $autoreminderenabled ? 'btn-success' : 'btn-outline-secondary';
+    $toggleicon = $autoreminderenabled ? '🔔' : '🔕';
+    $toggletext = $autoreminderenabled
         ? get_string('autoreminder_on', 'block_scormreport')
         : get_string('autoreminder_off', 'block_scormreport');
     echo ' ' . html_writer::link($toggleurl,
@@ -798,28 +798,28 @@ if (!$isdetail) {
         <table class="table table-striped table-hover scorm-report-table sortable-table" id="global-table">
             <thead><tr>
                 <th class="sortable-col" role="button" tabindex="0" data-col="0">' . $hdr('student')      . $sorticon . '</th>'
-                . ($show_col('username')       ? '<th class="sortable-col" role="button" tabindex="0">' . $hdr('username')     . $sorticon . '</th>' : '')
-                . ($show_col('email')          ? '<th class="sortable-col" role="button" tabindex="0">' . $hdr('email')        . $sorticon . '</th>' : '')
-                . ($show_col('dni')            ? '<th class="sortable-col" role="button" tabindex="0">' . $hdr('dni')          . $sorticon . '</th>' : '')
-                . ($show_col('company')        ? '<th class="sortable-col" role="button" tabindex="0">' . $hdr('company')      . $sorticon . '</th>' : '')
-                . ($show_col('timescorm')      ? '<th class="sortable-col" role="button" tabindex="0">' . $hdr('timescorm')    . $sorticon . '</th>' : '')
-                . ($show_col('pcttimecourse')  ? '<th class="sortable-col" role="button" tabindex="0">' . $hdr('pcttimecourse') . $sorticon . '</th>' : '')
-                . ($show_col('score')          ? '<th class="sortable-col" role="button" tabindex="0">' . $hdr('score')        . $sorticon . '</th>' : '')
+                . ($showcol('username')       ? '<th class="sortable-col" role="button" tabindex="0">' . $hdr('username')     . $sorticon . '</th>' : '')
+                . ($showcol('email')          ? '<th class="sortable-col" role="button" tabindex="0">' . $hdr('email')        . $sorticon . '</th>' : '')
+                . ($showcol('dni')            ? '<th class="sortable-col" role="button" tabindex="0">' . $hdr('dni')          . $sorticon . '</th>' : '')
+                . ($showcol('company')        ? '<th class="sortable-col" role="button" tabindex="0">' . $hdr('company')      . $sorticon . '</th>' : '')
+                . ($showcol('timescorm')      ? '<th class="sortable-col" role="button" tabindex="0">' . $hdr('timescorm')    . $sorticon . '</th>' : '')
+                . ($showcol('pcttimecourse')  ? '<th class="sortable-col" role="button" tabindex="0">' . $hdr('pcttimecourse') . $sorticon . '</th>' : '')
+                . ($showcol('score')          ? '<th class="sortable-col" role="button" tabindex="0">' . $hdr('score')        . $sorticon . '</th>' : '')
                 . '<th>' . $hdr('topicscolumn') . '</th>'
-                . ($show_col('pctvistos')      ? '<th class="sortable-col" role="button" tabindex="0">' . $hdr('pctvistos')    . $sorticon . '</th>' : '')
-                . ($show_col('pctsuperados')   ? '<th class="sortable-col" role="button" tabindex="0">' . $hdr('pctsuperados') . $sorticon . '</th>' : '')
-                . ($show_col('seen')           ? '<th class="sortable-col" role="button" tabindex="0">' . $hdr('topicsseen')   . $sorticon . '</th>' : '')
-                . ($show_col('passed')         ? '<th class="sortable-col" role="button" tabindex="0">' . $hdr('topicspassed') . $sorticon . '</th>' : '')
-                . ($show_col('attempts_total') ? '<th class="sortable-col" role="button" tabindex="0">' . $hdr('attemptstotal') . $sorticon . '</th>' : '')
-                . ($show_col('firstaccess')    ? '<th class="sortable-col" role="button" tabindex="0">' . $hdr('firstaccess')  . $sorticon . '</th>' : '')
-                . ($show_col('lastaccess')     ? '<th class="sortable-col" role="button" tabindex="0">' . $hdr('lastaccess')   . $sorticon . '</th>' : '')
-                . ($show_col('progresscolumn') ? '<th>' . $hdr('progresscolumn') . '</th>' : '')
-                . ($show_col('deadlinestatus') ? '<th>' . $hdr('deadlinestatus') . '</th>' : '')
+                . ($showcol('pctvistos')      ? '<th class="sortable-col" role="button" tabindex="0">' . $hdr('pctvistos')    . $sorticon . '</th>' : '')
+                . ($showcol('pctsuperados')   ? '<th class="sortable-col" role="button" tabindex="0">' . $hdr('pctsuperados') . $sorticon . '</th>' : '')
+                . ($showcol('seen')           ? '<th class="sortable-col" role="button" tabindex="0">' . $hdr('topicsseen')   . $sorticon . '</th>' : '')
+                . ($showcol('passed')         ? '<th class="sortable-col" role="button" tabindex="0">' . $hdr('topicspassed') . $sorticon . '</th>' : '')
+                . ($showcol('attempts_total') ? '<th class="sortable-col" role="button" tabindex="0">' . $hdr('attemptstotal') . $sorticon . '</th>' : '')
+                . ($showcol('firstaccess')    ? '<th class="sortable-col" role="button" tabindex="0">' . $hdr('firstaccess')  . $sorticon . '</th>' : '')
+                . ($showcol('lastaccess')     ? '<th class="sortable-col" role="button" tabindex="0">' . $hdr('lastaccess')   . $sorticon . '</th>' : '')
+                . ($showcol('progresscolumn') ? '<th>' . $hdr('progresscolumn') . '</th>' : '')
+                . ($showcol('deadlinestatus') ? '<th>' . $hdr('deadlinestatus') . '</th>' : '')
                 . '<th>' . $hdr('fullreport')   . '</th>'
                 . '<th>' . $hdr('logentries')   . '</th>'
-                . ($canexport && $show_col('evidencebutton') ? '<th>' . $hdr('evidencebutton') . '</th>' : '')
-                . ($canexport && $show_col('connections') ? '<th>' . $hdr('connections') . '</th>' : '')
-                . ($has_diploma && $show_col('diploma') ? '<th>' . $hdr('diploma') . '</th>' : '') . '
+                . ($canexport && $showcol('evidencebutton') ? '<th>' . $hdr('evidencebutton') . '</th>' : '')
+                . ($canexport && $showcol('connections') ? '<th>' . $hdr('connections') . '</th>' : '')
+                . ($hasdiploma && $showcol('diploma') ? '<th>' . $hdr('diploma') . '</th>' : '') . '
             </tr></thead>
             <tbody>';
 
@@ -842,34 +842,34 @@ if (!$isdetail) {
                 data-pctsuperados="' . $pspct . '"
                 data-score="' . $rowscore . '">
                 <td>'                         . htmlspecialchars($row['studentname'])  . '</td>'
-                . ($show_col('username')      ? '<td>' . htmlspecialchars($row['username'] ?? '') . '</td>' : '')
-                . ($show_col('email')         ? '<td>' . htmlspecialchars($row['email'] ?? '') . '</td>' : '')
-                . ($show_col('dni')           ? '<td>' . (!empty($row['dni']) ? htmlspecialchars($row['dni']) : '-') . '</td>' : '')
-                . ($show_col('company')       ? '<td' . (!empty($row['company']) ? ' title="' . htmlspecialchars($row['company'], ENT_QUOTES) . '"' : '') . '>' . (!empty($row['company']) ? htmlspecialchars($company_short($row['company'])) : '-') . '</td>' : '')
-                . ($show_col('timescorm')     ? '<td class="text-center font-monospace" data-sort="' . $row['totalseconds'] . '">' . $row['timescorm'] . '</td>' : '')
-                . ($show_col('pcttimecourse') ? '<td class="text-center">' . $row['pcttotal'] . '</td>' : '')
-                . ($show_col('score')         ? '<td class="text-center"><strong>' . $row['score'] . '</strong></td>' : '')
+                . ($showcol('username')      ? '<td>' . htmlspecialchars($row['username'] ?? '') . '</td>' : '')
+                . ($showcol('email')         ? '<td>' . htmlspecialchars($row['email'] ?? '') . '</td>' : '')
+                . ($showcol('dni')           ? '<td>' . (!empty($row['dni']) ? htmlspecialchars($row['dni']) : '-') . '</td>' : '')
+                . ($showcol('company')       ? '<td' . (!empty($row['company']) ? ' title="' . htmlspecialchars($row['company'], ENT_QUOTES) . '"' : '') . '>' . (!empty($row['company']) ? htmlspecialchars($companyshort($row['company'])) : '-') . '</td>' : '')
+                . ($showcol('timescorm')     ? '<td class="text-center font-monospace" data-sort="' . $row['totalseconds'] . '">' . $row['timescorm'] . '</td>' : '')
+                . ($showcol('pcttimecourse') ? '<td class="text-center">' . $row['pcttotal'] . '</td>' : '')
+                . ($showcol('score')         ? '<td class="text-center"><strong>' . $row['score'] . '</strong></td>' : '')
                 . '<td>' . $topiccell . '</td>'
-                . ($show_col('pctvistos')     ? '<td class="text-center">' . ($row['pctvistos'] ?? '-') . '</td>' : '')
-                . ($show_col('pctsuperados')  ? '<td class="text-center">
+                . ($showcol('pctvistos')     ? '<td class="text-center">' . ($row['pctvistos'] ?? '-') . '</td>' : '')
+                . ($showcol('pctsuperados')  ? '<td class="text-center">
                     <div class="progress-wrap">
                         <div class="progress-bar-custom bar-green" style="width:' . $ps . '%"></div>
                         <span>' . $row['pctsuperados'] . '</span>
                     </div></td>' : '')
-                . ($show_col('seen')          ? '<td class="text-center">' . ($row['seen'] ?? 0) . '</td>' : '')
-                . ($show_col('passed')        ? '<td class="text-center">' . ($row['passed'] ?? 0) . '</td>' : '')
-                . ($show_col('attempts_total') ? '<td class="text-center">' . ($row['attempts_total'] ?? 0) . '</td>' : '')
-                . ($show_col('firstaccess')   ? '<td data-sort="' . ($row['firstaccess_ts'] ?? 0) . '">' . $row['firstaccess'] . '</td>' : '')
-                . ($show_col('lastaccess')    ? '<td data-sort="' . ($row['lastaccess_ts'] ?? 0) . '">' . $row['lastaccess']  . '</td>' : '')
-                . ($show_col('progresscolumn') ? '<td class="text-center">'
-                    . ($pspct >= $apt_threshold
-                        ? '<span class="badge badge-success badge-apt">▲ ' . $progress_ok_label . '</span>'
-                        : '<span class="badge badge-danger badge-apt">▼ ' . $progress_no_label . '</span>')
+                . ($showcol('seen')          ? '<td class="text-center">' . ($row['seen'] ?? 0) . '</td>' : '')
+                . ($showcol('passed')        ? '<td class="text-center">' . ($row['passed'] ?? 0) . '</td>' : '')
+                . ($showcol('attempts_total') ? '<td class="text-center">' . ($row['attempts_total'] ?? 0) . '</td>' : '')
+                . ($showcol('firstaccess')   ? '<td data-sort="' . ($row['firstaccess_ts'] ?? 0) . '">' . $row['firstaccess'] . '</td>' : '')
+                . ($showcol('lastaccess')    ? '<td data-sort="' . ($row['lastaccess_ts'] ?? 0) . '">' . $row['lastaccess']  . '</td>' : '')
+                . ($showcol('progresscolumn') ? '<td class="text-center">'
+                    . ($pspct >= $aptthreshold
+                        ? '<span class="badge badge-success badge-apt">▲ ' . $progressoklabel . '</span>'
+                        : '<span class="badge badge-danger badge-apt">▼ ' . $progressnolabel . '</span>')
                     . '</td>' : '');
 
             // Deadline traffic-light (optional column).
-            if ($show_col('deadlinestatus')) {
-                $dlstatus = block_scormreport_calc_deadline_status($pspct, $course->startdate ?? 0, $course->enddate ?? 0, $deadline_tolerance);
+            if ($showcol('deadlinestatus')) {
+                $dlstatus = block_scormreport_calc_deadline_status($pspct, $course->startdate ?? 0, $course->enddate ?? 0, $deadlinetolerance);
                 echo '<td class="text-center">
                         <span class="badge ' . $dlstatus['badge'] . ' badge-apt" title="' . get_string('pctdeadline', 'block_scormreport') . ': ' . $dlstatus['pctdeadline'] . '%">'
                             . $dlstatus['label'] . '</span>
@@ -888,7 +888,7 @@ if (!$isdetail) {
                     </a></td>
                 ';
             // Compliance evidence button (per-student report)
-            if ($canexport && $show_col('evidencebutton')) {
+            if ($canexport && $showcol('evidencebutton')) {
                 $evidenceurl = new moodle_url('/blocks/scormreport/generate_evidence_pdf.php',
                     ['courseid' => $courseid, 'userid' => $row['userid']]);
                 $evhref  = $evidenceurl->out(false);
@@ -900,7 +900,7 @@ if (!$isdetail) {
                     </a></td>';
             }
             // Connections report button (per-student daily connection PDF).
-            if ($canexport && $show_col('connections')) {
+            if ($canexport && $showcol('connections')) {
                 $connurl = new moodle_url('/blocks/scormreport/generate_connections_pdf.php',
                     ['courseid' => $courseid, 'userid' => $row['userid']]);
                 $connhref   = $connurl->out(false);
@@ -912,9 +912,9 @@ if (!$isdetail) {
                     </a></td>';
             }
             // Diploma column if mod_diploma is available
-            if ($has_diploma && $show_col('diploma')) {
-                if ($pspct >= $apt_threshold) {
-                    $diplomaurl = new moodle_url('/mod/diploma/view.php', ['id' => $diploma_cmid, 'userid' => $row['userid']]);
+            if ($hasdiploma && $showcol('diploma')) {
+                if ($pspct >= $aptthreshold) {
+                    $diplomaurl = new moodle_url('/mod/diploma/view.php', ['id' => $diplomacmid, 'userid' => $row['userid']]);
                     echo '<td class="text-center">
                         <a href="' . $diplomaurl->out(false) . '" target="_blank" class="btn btn-xs btn-outline-success">
                             🎓 ' . get_string('diploma', 'block_scormreport') . '
@@ -931,11 +931,11 @@ if (!$isdetail) {
             foreach (['username','email','dni','company','timescorm','pcttimecourse',
                       'score','pctvistos','pctsuperados','seen','passed','attempts_total',
                       'firstaccess','lastaccess','progresscolumn','deadlinestatus'] as $oc) {
-                if ($show_col($oc)) $numcols++;
+                if ($showcol($oc)) $numcols++;
             }
-            if ($canexport && $show_col('evidencebutton')) $numcols++;
-            if ($canexport && $show_col('connections')) $numcols++;
-            if ($has_diploma && $show_col('diploma')) $numcols++;
+            if ($canexport && $showcol('evidencebutton')) $numcols++;
+            if ($canexport && $showcol('connections')) $numcols++;
+            if ($hasdiploma && $showcol('diploma')) $numcols++;
             echo '<tr class="sco-detail-row" id="scorm-detail-' . $growindex . '" style="display:none;">
                 <td colspan="' . $numcols . '" class="sco-detail-cell">
                 <table class="table table-sm mb-0 sco-inner-table">

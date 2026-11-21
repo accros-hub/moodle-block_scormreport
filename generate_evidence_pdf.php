@@ -42,9 +42,9 @@ if (!is_enrolled($context, $targetuser, '', false)) {
     throw new moodle_exception('notenrolled', 'block_scormreport');
 }
 
-$apt_threshold = get_config('block_scormreport', 'apt_threshold');
-$apt_threshold = ($apt_threshold === false || $apt_threshold === '') ? 75 : (int)$apt_threshold;
-$apt_threshold = max(0, min(100, $apt_threshold));
+$aptthreshold = get_config('block_scormreport', 'apt_threshold');
+$aptthreshold = ($aptthreshold === false || $aptthreshold === '') ? 75 : (int)$aptthreshold;
+$aptthreshold = max(0, min(100, $aptthreshold));
 $str = function($key, $a = null) { return get_string($key, 'block_scormreport', $a); };
 
 // Get report data
@@ -221,7 +221,7 @@ $pdf->SetTextColor(0, 0, 0);
 $pdf->Ln(3);
 
 $pspct = (float)rtrim($studentdata['pctsuperados'], '%');
-$apto = $pspct >= $apt_threshold ? $str('apt') : $str('notapt');
+$apto = $pspct >= $aptthreshold ? $str('apt') : $str('notapt');
 
 $cfields = [
     [$str('coursename_label'), $course->fullname],
@@ -251,8 +251,8 @@ $pdf->Ln(3);
 
 // Header
 $cols = [50, 22, 20, 25, 24, 24];
-$headers_t = [$str('scormname'), $str('timescorm'), $str('score'), $str('status'), $str('firstaccess'), $str('lastaccess')];
-block_scormreport_draw_header_row($pdf, $cols, $headers_t);
+$headerst = [$str('scormname'), $str('timescorm'), $str('score'), $str('status'), $str('firstaccess'), $str('lastaccess')];
+block_scormreport_draw_header_row($pdf, $cols, $headerst);
 
 // Rows
 $pdf->SetFont('helvetica', '', 7);
@@ -271,7 +271,7 @@ foreach ($userdetails as $sd) {
     $pdf->SetFillColor($fill ? 245 : 255, $fill ? 248 : 255, $fill ? 252 : 255);
     if (!block_scormreport_draw_wrapped_row($pdf, $rowcells, $fill)) {
         $pdf->AddPage();
-        block_scormreport_draw_header_row($pdf, $cols, $headers_t);
+        block_scormreport_draw_header_row($pdf, $cols, $headerst);
         $pdf->SetFont('helvetica', '', 7);
         $pdf->SetFillColor($fill ? 245 : 255, $fill ? 248 : 255, $fill ? 252 : 255);
         block_scormreport_draw_wrapped_row($pdf, $rowcells, $fill);
