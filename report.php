@@ -40,7 +40,6 @@ require_capability('block/scormreport:viewreports', $context);
 if ($download) {
     require_capability('block/scormreport:export', $context);
     // Exports follow the same license rule as the report (defence in depth).
-    require_once($CFG->dirroot . '/blocks/scormreport/classes/license.php');
     if (!\block_scormreport\license::course_allowed($course)) {
         throw new moodle_exception('licenselocked', 'block_scormreport');
     }
@@ -53,7 +52,6 @@ $canexport = has_capability('block/scormreport:export', $context);
 $cansendreminders = has_capability('block/scormreport:sendreminders', $context);
 
 // ── License check: courses not covered by the license show the locked page. ──
-require_once($CFG->dirroot . '/blocks/scormreport/classes/license.php');
 if (!\block_scormreport\license::course_allowed($course)) {
     block_scormreport_show_locked_page($PAGE, $OUTPUT, $course, $courseid);
     // block_scormreport_show_locked_page() calls exit.
