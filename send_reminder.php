@@ -47,7 +47,6 @@ require_login($course);
 require_capability('block/scormreport:sendreminders', $context);
 
 // License check: only courses covered by the license.
-require_once($CFG->dirroot . '/blocks/scormreport/classes/license.php');
 if (!\block_scormreport\license::course_allowed($course)) {
     throw new moodle_exception('licenselocked', 'block_scormreport');
 }
@@ -231,147 +230,66 @@ echo $OUTPUT->header();
 $reporturl = new moodle_url('/blocks/scormreport/report.php', ['courseid' => $courseid]);
 echo html_writer::link($reporturl, $str('backtoreport'), ['class' => 'btn btn-secondary mb-3']);
 
-echo '<div class="scorm-report-header mb-4">';
-echo '<h2 class="scorm-report-title">✉ ' . $str('sendreminder') . '</h2>';
-echo '<div class="scorm-report-meta">' . htmlspecialchars($course->fullname) . '</div>';
-echo '</div>';
-
-// ─── Form ────────────────────────────────────────────────────────────────────
-echo '<form method="post" action="">';
-echo '<input type="hidden" name="courseid" value="' . $courseid . '">';
-echo '<input type="hidden" name="sesskey" value="' . sesskey() . '">';
-echo '<input type="hidden" name="action" id="form-action" value="preview">';
-
-// STEP 1
-echo '<div class="card mb-4">';
-echo '<div class="card-header scormreport-card-header">1. ' . $str('definerecipients') . '</div>';
-echo '<div class="card-body">';
-echo '<label class="font-weight-bold">' . $str('sendtobelow') . '
-    <select name="minpct" class="form-control d-inline-block" style="width:100px;" onchange="this.form.submit()" required>';
-echo '<option value=""' . ($minpct == 0 ? ' selected' : '') . '>--</option>';
+$percentoptions = [['value' => '', 'label' => '--', 'selected' => $minpct === 0]];
 foreach ([25, 50, 75, 100] as $pct) {
-    $sel = ($minpct == $pct) ? ' selected' : '';
-    echo '<option value="' . $pct . '"' . $sel . '>' . $pct . '%</option>';
+    $percentoptions[] = ['value' => $pct, 'label' => $pct . '%', 'selected' => $minpct === $pct];
 }
-echo '</select> ' . $str('oftopicspassed') . '</label>';
-echo '</div></div>';
-
-// STEP 2
-echo '<div class="card mb-4">';
-echo '<div class="card-header scormreport-card-header">2. ' . $str('recipientlist', count($inactive)) . '</div>';
-echo '<div class="card-body p-0">';
-if (!$minpct_selected) {
-    echo '<p class="p-3 text-muted">' . $str('selectpercentfirst') . '</p>';
-} else if (empty($inactive)) {
-    echo '<p class="p-3 text-muted">' . $str('norecipientsbelow', $minpct) . '</p>';
-} else {
-    echo '<table class="table table-sm mb-0 scorm-report-table">
-        <thead><tr>
-            <th style="width:40px;text-align:center;">
-                <input type="checkbox" id="select-all" checked title="' . $str('filterall') . '"
-                   >
-            </th>
-            <th>' . $str('student') . '</th>
-            <th>' . $str('email') . '</th>
-            <th class="text-center">' . $str('pctsuperados') . '</th>
-            <th class="text-center">' . $str('pctvistos') . '</th>
-            <th>' . $str('lastaccess') . '</th>
-        </tr></thead><tbody>';
-    foreach ($inactive as $row) {
-        echo '<tr>
-            <td style="text-align:center;">
-                <input type="checkbox" class="recipient-check" name="selected_users[]"
-                    value="' . $row['userid'] . '" checked>
-            </td>
-            <td>' . htmlspecialchars($row['studentname']) . '</td>
-            <td><small>' . htmlspecialchars($row['email']) . '</small></td>
-            <td class="text-center"><strong>' . $row['pctsuperados'] . '</strong></td>
-            <td class="text-center">' . $row['pctvistos'] . '</td>
-            <td>' . $row['lastaccess'] . '</td>
-        </tr>';
-    }
-    echo '</tbody></table>';
+$channeloptions = [];
+foreach ([
+    'email' => ['channelemailonly', 'channelemaildesc'],
+    'internal' => ['channelinternalonly', 'channelinternaldesc'],
+    'both' => ['channelboth', 'channelbothdesc'],
+] as $value => $keys) {
+    $channeloptions[] = [
+        'value' => $value,
+        'label' => $str($keys[0]),
+        'description' => $str($keys[1]),
+        'selected' => $channel === $value,
+    ];
 }
-echo '</div></div>';
-
-// STEP 3
-echo '<div class="card mb-4">';
-echo '<div class="card-header scormreport-card-header">3. ' . $str('sendchannel') . '</div>';
-echo '<div class="card-body">';
-echo '<div class="d-flex gap-3" style="gap:1.5rem;flex-wrap:wrap;">';
-
-$channels = [
-    'email'    => [$str('channelemailonly'),    $str('channelemaildesc')],
-    'internal' => [$str('channelinternalonly'), $str('channelinternaldesc')],
-    'both'     => [$str('channelboth'),         $str('channelbothdesc')],
-];
-foreach ($channels as $val => [$label, $desc]) {
-    $checked = ($channel === $val) ? ' checked' : '';
-    $selclass = ($channel === $val) ? ' scormreport-channel-selected' : '';
-    echo '<div style="flex:1;min-width:200px;">
-        <label for="ch_' . $val . '" class="card h-100 scormreport-channel-card' . $selclass . '" style="cursor:pointer;display:block;">
-            <div class="card-body p-3">
-                <div class="d-flex align-items-center gap-2 mb-1">
-                    <input type="radio" name="channel" id="ch_' . $val . '" value="' . $val . '"' . $checked . ' onchange="this.closest(\'form\').submit()" style="margin:0;">
-                    <span class="font-weight-bold">' . $label . '</span>
-                </div>
-                <small class="text-muted">' . $desc . '</small>
-            </div>
-        </label>
-    </div>';
-}
-echo '</div>';
-echo '</div></div>';
-echo '<div class="card mb-4">';
-echo '<div class="card-header scormreport-card-header">4. ' . $str('composemessage') . '</div>';
-echo '<div class="card-body">';
-
-echo '<div class="alert alert-info" style="font-size:0.85rem;background:#EBF5FB;border-color:#0073aa;">';
-echo '<strong>' . $str('messageautobuilds') . '</strong><br>';
-echo '• ' . $str('messageautogreeting') . '<br>';
-echo '• ' . $str('messageautobody') . '<br>';
-echo '• ' . $str('messageautofooter') . '<br>';
-echo '</div>';
-
-if (!empty($inactive)) {
-    echo '<div class="card mb-3" style="border:1px solid #0073aa;">';
-    echo '<div class="card-header" style="background:#EBF5FB;font-size:0.85rem;font-weight:600;color:#0073aa;">
-        ' . $str('previewfor', htmlspecialchars($preview_name)) . '
-    </div>';
-    echo '<div class="card-body p-3" style="font-size:0.85rem;">';
-    echo '<div id="preview-box" style="white-space:pre-wrap;font-family:Arial,sans-serif;"></div>';
-    echo '</div></div>';
-}
-
-$cur_subject = htmlspecialchars($subject ?: $default_subject);
-$cur_message = htmlspecialchars($message ?: $default_message);
-
-echo '<div class="form-group">
-    <label class="font-weight-bold">' . $str('subjectlabel') . '</label>
-    <input type="text" name="subject" id="msg-subject" class="form-control" value="' . $cur_subject . '" required>
-</div>';
-
-echo '<div class="form-group">
-    <label class="font-weight-bold">' . $str('messagelabel') . '</label>
-    <textarea name="message" id="msg-body" class="form-control" rows="10" required>' . $cur_message . '</textarea>
-</div>';
-
-echo '</div></div>';
-
-// Send button (dynamic count based on checkboxes)
-if (!empty($inactive)) {
-    $n = count($inactive);
-    $sendlabel = $str('sendtocount', '__COUNT__');
-    echo '<button type="submit" id="btn-send" class="btn btn-primary btn-lg"
-        data-confirm="' . htmlspecialchars($str('confirmsendn', '__COUNT__'), ENT_QUOTES) . '"
-        data-norecipients="' . htmlspecialchars($str('norecipients'), ENT_QUOTES) . '">
-        ' . str_replace('__COUNT__', '<span id="send-count">' . $n . '</span>', $sendlabel) . '
-    </button>';
-} else {
-    echo '<button type="button" class="btn btn-secondary btn-lg" disabled>' . $str('norecipients') . '</button>';
-}
-
-echo '</form>';
+$sendlabel = $str('sendtocount', '__COUNT__');
+$sendparts = explode('__COUNT__', $sendlabel, 2);
+$recipients = array_values($inactive);
+echo $OUTPUT->render_from_template('block_scormreport/reminder_form', [
+    'title' => $str('sendreminder'),
+    'coursename' => $course->fullname,
+    'courseid' => $courseid,
+    'sesskey' => sesskey(),
+    'recipientsheading' => $str('definerecipients'),
+    'sendtobelow' => $str('sendtobelow'),
+    'percentoptions' => $percentoptions,
+    'oftopicspassed' => $str('oftopicspassed'),
+    'recipientlistheading' => $str('recipientlist', count($inactive)),
+    'selectpercentfirst' => !$minpct_selected,
+    'selectpercentfirstlabel' => $str('selectpercentfirst'),
+    'norecipients' => $minpct_selected && empty($inactive),
+    'norecipientslabel' => $str('norecipientsbelow', $minpct),
+    'hasrecipients' => !empty($inactive),
+    'filterall' => $str('filterall'),
+    'studentlabel' => $str('student'),
+    'emaillabel' => $str('email'),
+    'pctsuperadoslabel' => $str('pctsuperados'),
+    'pctvistoslabel' => $str('pctvistos'),
+    'lastaccesslabel' => $str('lastaccess'),
+    'recipients' => $recipients,
+    'channelheading' => $str('sendchannel'),
+    'channels' => $channeloptions,
+    'composeheading' => $str('composemessage'),
+    'messageautobuilds' => $str('messageautobuilds'),
+    'messageautogreeting' => $str('messageautogreeting'),
+    'messageautobody' => $str('messageautobody'),
+    'messageautofooter' => $str('messageautofooter'),
+    'previewfor' => $str('previewfor', $preview_name),
+    'subjectlabel' => $str('subjectlabel'),
+    'messagelabel' => $str('messagelabel'),
+    'subject' => $subject ?: $default_subject,
+    'message' => $message ?: $default_message,
+    'confirmtext' => $str('confirmsendn', '__COUNT__'),
+    'norecipientstext' => $str('norecipients'),
+    'sendbefore' => $sendparts[0],
+    'sendafter' => $sendparts[1] ?? '',
+    'recipientcount' => count($inactive),
+]);
 
 // JS preview — build header/footer with the real values in PHP
 $preview_header = $str('remindergreeting', $preview_name) . "\n\n";
