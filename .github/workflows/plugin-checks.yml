@@ -87,3 +87,6 @@ jobs:
       - name: Mustache validation
         if: ${{ !cancelled() }}
         run: moodle-plugin-ci mustache
+      - name: Browser regression checks
+        if: ${{ !cancelled() && matrix.moodle == 'MOODLE_503_STABLE' }}
+        run: moodle-plugin-ci behat --profile chrome --tags=@block_scormreport_mmrt293
