@@ -47,8 +47,6 @@ class refresh_license extends \core\task\scheduled_task {
      * Run the task.
      */
     public function execute() {
-        global $CFG;
-        require_once($CFG->dirroot . '/blocks/scormreport/classes/license.php');
         if (!\block_scormreport\license::refresh_due()) {
             mtrace('block_scormreport: license refresh not due yet.');
             return;
