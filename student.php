@@ -42,7 +42,6 @@ if (has_capability('block/scormreport:viewreports', $context)) {
 require_capability('block/scormreport:viewownreport', $context);
 
 // License check: courses not covered by the license show the locked page.
-require_once($CFG->dirroot . '/blocks/scormreport/classes/license.php');
 if (!\block_scormreport\license::course_allowed($course)) {
     block_scormreport_show_locked_page($PAGE, $OUTPUT, $course, $course->id);
 }
