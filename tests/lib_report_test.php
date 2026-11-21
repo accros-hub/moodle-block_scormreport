@@ -304,4 +304,46 @@ final class lib_report_test extends \advanced_testcase {
         $notpattern = 'id';
         $this->assertEquals(0, preg_match('/^correct_responses_\\d+\\.pattern$/', $notpattern));
     }
+    /**
+     * Connection totals remain correct when a session crosses a 90-day SQL window.
+     */
+    public function test_connections_across_query_window(): void {
+        global $DB;
+        $this->resetAfterTest(true);
+        $course = $this->getDataGenerator()->create_course();
+        $user = $this->getDataGenerator()->create_user();
+        $base = 1700000000;
+        $events = [$base, $base + 600, $base + 90 * DAYSECS - 60,
+            $base + 90 * DAYSECS + 60, $base + 90 * DAYSECS + 3600];
+        foreach ($events as $time) {
+            $DB->insert_record('logstore_standard_log', (object)[
+                'eventname' => '\\core\\event\\course_viewed',
+                'component' => 'core',
+                'action' => 'viewed',
+                'target' => 'course',
+                'objecttable' => 'course',
+                'objectid' => $course->id,
+                'crud' => 'r',
+                'edulevel' => 2,
+                'contextid' => \\context_course::instance($course->id)->id,
+                'contextlevel' => CONTEXT_COURSE,
+                'contextinstanceid' => $course->id,
+                'userid' => $user->id,
+                'courseid' => $course->id,
+                'relateduserid' => null,
+                'anonymous' => 0,
+                'other' => null,
+                'timecreated' => $time,
+                'origin' => 'web',
+                'ip' => '127.0.0.1',
+                'realuserid' => null,
+            ]);
+        }
+        $data = block_scormreport_get_connections($course->id, [$user->id]);
+        $this->assertSame(3, $data[$user->id]['sessions']);
+        $this->assertSame(720, $data[$user->id]['total_seconds']);
+        $this->assertSame($base, $data[$user->id]['first_login']);
+        $this->assertSame(end($events), $data[$user->id]['last_login']);
+    }
+
 }
