@@ -1,0 +1,54 @@
+{{!
+    Compliance dashboard. All user-provided text is escaped by Mustache.
+    @template block_scormreport/compliance_dashboard
+}}
+<div class="scorm-report-table">
+    <h3 class="scormreport-compliance-title">{{title}}</h3>
+    <div class="scormreport-compliance-filters">
+        <span class="scormreport-compliance-filter-label">{{filterlabel}}:</span>
+        {{#filters}}
+            <a href="{{url}}" class="btn btn-sm {{buttonclass}} me-1">{{label}}</a>
+        {{/filters}}
+    </div>
+    {{{lockednotice}}}
+    <div class="scormreport-compliance-cards">
+        {{#cards}}
+            <div class="scormreport-compliance-card" style="background:{{color}}">
+                <div class="scormreport-compliance-card-value">{{value}}</div>
+                <div class="scormreport-compliance-card-label">{{label}}</div>
+            </div>
+        {{/cards}}
+    </div>
+    {{#hasalerts}}
+        <div class="alert scormreport-compliance-alert">
+            <strong>{{alertslabel}}:</strong>
+            <ul>
+                {{#alerts}}
+                    <li><strong>{{coursename}}</strong>: {{description}}</li>
+                {{/alerts}}
+            </ul>
+        </div>
+    {{/hasalerts}}
+    <table class="table table-striped table-hover scorm-report-table sortable-table">
+        <thead>
+            <tr>
+                {{#headers}}<th class="{{class}}">{{label}}</th>{{/headers}}
+            </tr>
+        </thead>
+        <tbody>
+            {{#courses}}
+                <tr>
+                    <td><a href="{{reporturl}}">{{coursename}}</a><small class="text-muted d-block">{{category}}</small></td>
+                    <td class="text-center"><small>{{startdate}}<br>{{enddate}}</small></td>
+                    <td class="text-center"><strong>{{students}}</strong></td>
+                    <td class="text-center"><span class="scormreport-compliance-apt">{{apto}}</span></td>
+                    <td class="text-center"><span class="scormreport-compliance-notapt">{{noapto}}</span></td>
+                    <td class="text-center"><span class="scormreport-compliance-percent" style="background:{{pctcolor}}">{{pctapto}}%</span></td>
+                    <td class="text-center"><span class="badge {{riskclass}}">{{risk}}</span></td>
+                    <td class="text-center"><span class="badge {{noclass}}">{{noactivity}}</span></td>
+                    <td class="text-center"><a href="{{reporturl}}" class="btn btn-xs btn-outline-primary" title="{{fullreport}}">📊</a></td>
+                </tr>
+            {{/courses}}
+        </tbody>
+    </table>
+</div>
