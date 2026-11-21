@@ -361,11 +361,11 @@ echo '</div></div>';
 // Send button (dynamic count based on checkboxes)
 if (!empty($inactive)) {
     $n = count($inactive);
-    $sendLabel = $str('sendtocount', '__COUNT__');
+    $sendlabel = $str('sendtocount', '__COUNT__');
     echo '<button type="submit" id="btn-send" class="btn btn-primary btn-lg"
         data-confirm="' . htmlspecialchars($str('confirmsendn', '__COUNT__'), ENT_QUOTES) . '"
         data-norecipients="' . htmlspecialchars($str('norecipients'), ENT_QUOTES) . '">
-        ' . str_replace('__COUNT__', '<span id="send-count">' . $n . '</span>', $sendLabel) . '
+        ' . str_replace('__COUNT__', '<span id="send-count">' . $n . '</span>', $sendlabel) . '
     </button>';
 } else {
     echo '<button type="button" class="btn btn-secondary btn-lg" disabled>' . $str('norecipients') . '</button>';
