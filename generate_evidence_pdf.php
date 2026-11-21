@@ -93,11 +93,11 @@ $enddate = $course->enddate ? userdate($course->enddate, '%d/%m/%Y') : '-';
  * Draw a two-column label:value row where both cells wrap and the row height
  * adapts to the tallest. Label in bold, value in normal.
  */
-function block_scormreport_draw_label_value($pdf, $label_w, $value_w, $label, $value, $minh = 7) {
+function block_scormreport_draw_label_value($pdf, $labelwidth, $valuewidth, $label, $value, $minh = 7) {
     $pdf->SetFont('helvetica', 'B', 10);
-    $hl = $pdf->getStringHeight($label_w, (string)$label);
+    $hl = $pdf->getStringHeight($labelwidth, (string)$label);
     $pdf->SetFont('helvetica', '', 10);
-    $hv = $pdf->getStringHeight($value_w, (string)$value);
+    $hv = $pdf->getStringHeight($valuewidth, (string)$value);
     $maxh = max($minh, $hl, $hv);
 
     if ($pdf->GetY() + $maxh > $pdf->getPageHeight() - 20) {
@@ -106,9 +106,9 @@ function block_scormreport_draw_label_value($pdf, $label_w, $value_w, $label, $v
     $x = $pdf->GetX();
     $y = $pdf->GetY();
     $pdf->SetFont('helvetica', 'B', 10);
-    $pdf->MultiCell($label_w, $maxh, (string)$label, 1, 'L', false, 0, $x, $y);
+    $pdf->MultiCell($labelwidth, $maxh, (string)$label, 1, 'L', false, 0, $x, $y);
     $pdf->SetFont('helvetica', '', 10);
-    $pdf->MultiCell($value_w, $maxh, (string)$value, 1, 'L', false, 1, $x + $label_w, $y);
+    $pdf->MultiCell($valuewidth, $maxh, (string)$value, 1, 'L', false, 1, $x + $labelwidth, $y);
 }
 
 /**
@@ -198,9 +198,9 @@ $pdf->SetTextColor(0, 0, 0);
 $pdf->Ln(3);
 
 $pdf->SetFont('helvetica', '', 10);
-$row_h = 7;
-$label_w = 62;
-$value_w = $pw - $label_w;
+$rowheight = 7;
+$labelwidth = 62;
+$valuewidth = $pw - $labelwidth;
 
 $fields = [
     [$str('fullname_label'), fullname($targetuser)],
@@ -209,7 +209,7 @@ $fields = [
 ];
 foreach ($fields as $f) {
     $pdf->SetFont('helvetica', '', 10);
-    block_scormreport_draw_label_value($pdf, $label_w, $value_w, $f[0] . ':', $f[1], $row_h);
+    block_scormreport_draw_label_value($pdf, $labelwidth, $valuewidth, $f[0] . ':', $f[1], $rowheight);
 }
 $pdf->Ln(5);
 
@@ -236,7 +236,7 @@ $cfields = [
     [$str('result_label'), $apto],
 ];
 foreach ($cfields as $f) {
-    block_scormreport_draw_label_value($pdf, $label_w, $value_w, $f[0] . ':', $f[1], $row_h);
+    block_scormreport_draw_label_value($pdf, $labelwidth, $valuewidth, $f[0] . ':', $f[1], $rowheight);
 }
 $pdf->Ln(5);
 
