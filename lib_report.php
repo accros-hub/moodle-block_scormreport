@@ -1150,35 +1150,34 @@ function block_scormreport_get_daily_connections(int $courseid, int $userid, arr
         );
         try {
             foreach ($logs as $log) {
-        $day = userdate($log->timecreated, '%Y-%m-%d');
+            $day = userdate($log->timecreated, '%Y-%m-%d');
 
-        // Determine the activity: context level 70 = module.
-        if ((int)$log->contextlevel === CONTEXT_MODULE && !empty($log->contextinstanceid)
-            && isset($cmnames[$log->contextinstanceid])) {
-            $activity = $cmnames[$log->contextinstanceid];
-        } else {
-            $activity = $courselabel; // course-level event (course view, etc.)
-        }
+            // Determine the activity: context level 70 = module.
+            if ((int)$log->contextlevel === CONTEXT_MODULE && !empty($log->contextinstanceid)
+                && isset($cmnames[$log->contextinstanceid])) {
+                $activity = $cmnames[$log->contextinstanceid];
+            } else {
+                $activity = $courselabel; // course-level event (course view, etc.)
+            }
 
-        $key = $day . '||' . $activity;
-        if (!isset($groups[$key])) {
-            $groups[$key] = [
-                'date'     => (int)$log->timecreated,
-                'first'    => (int)$log->timecreated,
-                'activity' => $activity,
-                'ips'      => [],
-            ];
-        }
-        // Keep the earliest time for this day+activity.
-        if ((int)$log->timecreated < $groups[$key]['first']) {
-            $groups[$key]['first'] = (int)$log->timecreated;
-            $groups[$key]['date']  = (int)$log->timecreated;
-        }
-        if (!empty($log->ip)) {
-            $groups[$key]['ips'][$log->ip] = true;
-        }
-    }
-
+            $key = $day . '||' . $activity;
+            if (!isset($groups[$key])) {
+                $groups[$key] = [
+                    'date'     => (int)$log->timecreated,
+                    'first'    => (int)$log->timecreated,
+                    'activity' => $activity,
+                    'ips'      => [],
+                ];
+            }
+            // Keep the earliest time for this day+activity.
+            if ((int)$log->timecreated < $groups[$key]['first']) {
+                $groups[$key]['first'] = (int)$log->timecreated;
+                $groups[$key]['date']  = (int)$log->timecreated;
+            }
+            if (!empty($log->ip)) {
+                $groups[$key]['ips'][$log->ip] = true;
+            }
+            }
         } finally {
             $logs->close();
         }
