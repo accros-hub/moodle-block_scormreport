@@ -13,6 +13,7 @@
 //
 // You should have received a copy of the GNU General Public License
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
+
 /**
  * Shared functions between report.php and generate_report_pdf.php
  * Optimized version: bulk data preloading to avoid N×M queries.
@@ -24,6 +25,18 @@
  */
 defined('MOODLE_INTERNAL') || die();
 
+/**
+ * Build the SCORM report data for a course, learner or activity.
+ *
+ * @param int $courseid Course ID.
+ * @param int $userid Learner ID, or zero for all learners.
+ * @param int $scormid Activity ID, or zero for all activities.
+ * @param context_course $context Course context.
+ * @param stdClass $course Course record.
+ * @param moodle_database $DB Moodle database connection.
+ * @param stdClass $CFG Moodle configuration.
+ * @return array
+ */
 function block_scormreport_get_data($courseid, $userid, $scormid, $context, $course, $DB, $CFG) {
 
     // 1. SCORM activities in the course
@@ -43,10 +56,17 @@ function block_scormreport_get_data($courseid, $userid, $scormid, $context, $cou
 
     // 2. Enrolled students using the Moodle API
     $students = [];
-    $enrolledusers = get_enrolled_users($context, 'block/scormreport:viewownreport', 0,
+    $enrolledusers = get_enrolled_users(
+        $context,
+        'block/scormreport:viewownreport',
+        0,
         'u.id, u.firstname, u.lastname, u.email, u.idnumber, u.institution, u.username,
          u.firstnamephonetic, u.lastnamephonetic, u.middlename, u.alternatename',
-        'u.lastname ASC, u.firstname ASC', 0, 0, false); // false = incluir activos e inactivos
+        'u.lastname ASC, u.firstname ASC',
+        0,
+        0,
+        false
+    ); // false = incluir activos e inactivos
     foreach ($enrolledusers as $u) {
         $students[$u->id] = $u;
     }
@@ -79,7 +99,7 @@ function block_scormreport_get_data($courseid, $userid, $scormid, $context, $cou
     }
 
     // 5. SCOs per SCORM
-    list($insqlsc, $paramssc) = $DB->get_in_or_equal($scormids, SQL_PARAMS_NAMED, 'sc');
+    [$insqlsc, $paramssc] = $DB->get_in_or_equal($scormids, SQL_PARAMS_NAMED, 'sc');
     $allscos = $DB->get_records_sql(
         "SELECT id, scorm, title FROM {scorm_scoes}
           WHERE scorm $insqlsc AND launch != ''
@@ -111,19 +131,20 @@ function block_scormreport_get_data($courseid, $userid, $scormid, $context, $cou
             'cmi.core.score.raw', 'cmi.score.raw',
             'cmi.core.lesson_status', 'cmi.completion_status', 'cmi.success_status',
         ];
-        list($insqlel, $paramsel) = $DB->get_in_or_equal($elementnames, SQL_PARAMS_NAMED, 'nm');
+        [$insqlel, $paramsel] = $DB->get_in_or_equal($elementnames, SQL_PARAMS_NAMED, 'nm');
         $elementrows = $DB->get_records_sql(
-            "SELECT id, element FROM {scorm_element} WHERE element $insqlel", $paramsel
+            "SELECT id, element FROM {scorm_element} WHERE element $insqlel",
+            $paramsel
         );
         $elementids = [];
-        foreach ($elementrows as $el) {
-            $elementids[$el->element] = $el->id;
-        }
+    foreach ($elementrows as $el) {
+        $elementids[$el->element] = $el->id;
+    }
 
         // 6. Attempts per (userid, scormid) — ALL + last for status
-        list($insqlu, $paramsu) = $DB->get_in_or_equal($studentids, SQL_PARAMS_NAMED, 'us');
-        list($insqlsc2, $paramssc2) = $DB->get_in_or_equal($scormids, SQL_PARAMS_NAMED, 'xsc');
-        list($insqlu2, $paramsu2)   = $DB->get_in_or_equal($studentids, SQL_PARAMS_NAMED, 'xus');
+        [$insqlu, $paramsu] = $DB->get_in_or_equal($studentids, SQL_PARAMS_NAMED, 'us');
+        [$insqlsc2, $paramssc2] = $DB->get_in_or_equal($scormids, SQL_PARAMS_NAMED, 'xsc');
+        [$insqlu2, $paramsu2]   = $DB->get_in_or_equal($studentids, SQL_PARAMS_NAMED, 'xus');
 
         // 6a. All attempts (for historical time and dates)
         $allattemptrows = $DB->get_records_sql(
@@ -135,11 +156,11 @@ function block_scormreport_get_data($courseid, $userid, $scormid, $context, $cou
         $allattemptids = [];
         $allattemptmap = []; // [userid][scormid] => [attemptid1, attemptid2, ...]
         $attemptcountmap = []; // [userid][scormid] => count
-        foreach ($allattemptrows as $row) {
-            $allattemptids[] = $row->id;
-            $allattemptmap[$row->userid][$row->scormid][] = $row->id;
-            $attemptcountmap[$row->userid][$row->scormid] = ($attemptcountmap[$row->userid][$row->scormid] ?? 0) + 1;
-        }
+    foreach ($allattemptrows as $row) {
+        $allattemptids[] = $row->id;
+        $allattemptmap[$row->userid][$row->scormid][] = $row->id;
+        $attemptcountmap[$row->userid][$row->scormid] = ($attemptcountmap[$row->userid][$row->scormid] ?? 0) + 1;
+    }
 
         // 6b. Last attempt (for academic score/status)
         $attemptrows = $DB->get_records_sql(
@@ -158,132 +179,143 @@ function block_scormreport_get_data($courseid, $userid, $scormid, $context, $cou
         );
         $attemptmap = [];
         $attemptids = [];
-        foreach ($attemptrows as $row) {
-            $attemptmap[$row->userid][$row->scormid] = $row->id;
-            $attemptids[] = $row->id;
-        }
+    foreach ($attemptrows as $row) {
+        $attemptmap[$row->userid][$row->scormid] = $row->id;
+        $attemptids[] = $row->id;
+    }
 
         // 6c. Test interactions (questions/answers) for the last attempt.
         $interactionsmap = block_scormreport_get_interactions($attemptids, $DB);
 
         // 7. CMI values (chunked)
         $valuesmap = [];
-        if (!empty($attemptids) && !empty($elementids)) {
-            $allelementids = array_values($elementids);
-            list($insqlelid, $paramselid) = $DB->get_in_or_equal($allelementids, SQL_PARAMS_NAMED, 'ei');
-            foreach (array_chunk($attemptids, 500) as $chunk) {
-                list($insqlatt, $paramsatt) = $DB->get_in_or_equal($chunk, SQL_PARAMS_NAMED, 'at');
-                $cmirows = $DB->get_records_sql(
-                    "SELECT id, attemptid, scoid, elementid, value
+    if (!empty($attemptids) && !empty($elementids)) {
+        $allelementids = array_values($elementids);
+        [$insqlelid, $paramselid] = $DB->get_in_or_equal($allelementids, SQL_PARAMS_NAMED, 'ei');
+        foreach (array_chunk($attemptids, 500) as $chunk) {
+            [$insqlatt, $paramsatt] = $DB->get_in_or_equal($chunk, SQL_PARAMS_NAMED, 'at');
+            $cmirows = $DB->get_records_sql(
+                "SELECT id, attemptid, scoid, elementid, value
                        FROM {scorm_scoes_value}
                       WHERE attemptid $insqlatt AND elementid $insqlelid",
-                    array_merge($paramsatt, $paramselid)
-                );
-                foreach ($cmirows as $row) {
-                    $valuesmap[$row->attemptid][$row->scoid][$row->elementid] = $row->value;
-                }
+                array_merge($paramsatt, $paramselid)
+            );
+            foreach ($cmirows as $row) {
+                $valuesmap[$row->attemptid][$row->scoid][$row->elementid] = $row->value;
             }
         }
+    }
 
         // 7b. Time from ALL attempts (historical total time)
         // Maps [userid][scormid] => total seconds across all attempts.
         $timeallmap = [];
-        if (!empty($allattemptids) && !empty($elementids)) {
-            $timeelnames = ['cmi.core.total_time', 'cmi.total_time', 'cmi.core.session_time', 'cmi.session_time'];
-            $timeelids = [];
-            foreach ($timeelnames as $en) {
-                if (isset($elementids[$en])) $timeelids[$en] = $elementids[$en];
+    if (!empty($allattemptids) && !empty($elementids)) {
+        $timeelnames = ['cmi.core.total_time', 'cmi.total_time', 'cmi.core.session_time', 'cmi.session_time'];
+        $timeelids = [];
+        foreach ($timeelnames as $en) {
+            if (isset($elementids[$en])) {
+                $timeelids[$en] = $elementids[$en];
             }
-            if (!empty($timeelids)) {
-                list($insqltel, $paramstel) = $DB->get_in_or_equal(array_values($timeelids), SQL_PARAMS_NAMED, 'tei');
-                // Map attemptid → [userid, scormid]
-                $attemptowner = [];
-                foreach ($allattemptrows as $ar) {
-                    $attemptowner[$ar->id] = ['userid' => $ar->userid, 'scormid' => $ar->scormid];
-                }
-                // cmi.core.total_time is CUMULATIVE: each attempt already stores
-                // the total accumulated time for that SCO, not just its session.
-                // So we keep the MAXIMUM across attempts per SCO (the last attempt
-                // already includes the earlier ones), never the sum. This map is
-                // kept across chunks so attempts split between chunks still compare.
-                $perscomax = []; // key "userid|scormid|scoid" => ['userid','scormid','secs']
-                foreach (array_chunk($allattemptids, 500) as $chunk) {
-                    list($insqltat, $paramstat) = $DB->get_in_or_equal($chunk, SQL_PARAMS_NAMED, 'tat');
-                    $timerows = $DB->get_records_sql(
-                        "SELECT id, attemptid, scoid, elementid, value
+        }
+        if (!empty($timeelids)) {
+            [$insqltel, $paramstel] = $DB->get_in_or_equal(array_values($timeelids), SQL_PARAMS_NAMED, 'tei');
+            // Map attemptid → [userid, scormid]
+            $attemptowner = [];
+            foreach ($allattemptrows as $ar) {
+                $attemptowner[$ar->id] = ['userid' => $ar->userid, 'scormid' => $ar->scormid];
+            }
+            // cmi.core.total_time is CUMULATIVE: each attempt already stores
+            // the total accumulated time for that SCO, not just its session.
+            // So we keep the MAXIMUM across attempts per SCO (the last attempt
+            // already includes the earlier ones), never the sum. This map is
+            // kept across chunks so attempts split between chunks still compare.
+            $perscomax = []; // key "userid|scormid|scoid" => ['userid','scormid','secs']
+            foreach (array_chunk($allattemptids, 500) as $chunk) {
+                [$insqltat, $paramstat] = $DB->get_in_or_equal($chunk, SQL_PARAMS_NAMED, 'tat');
+                $timerows = $DB->get_records_sql(
+                    "SELECT id, attemptid, scoid, elementid, value
                            FROM {scorm_scoes_value}
                           WHERE attemptid $insqltat AND elementid $insqltel",
-                        array_merge($paramstat, $paramstel)
-                    );
-                    $perscovalues = [];
-                    foreach ($timerows as $tr) {
-                        $perscovalues[$tr->attemptid][$tr->scoid][$tr->elementid] = $tr->value;
+                    array_merge($paramstat, $paramstel)
+                );
+                $perscovalues = [];
+                foreach ($timerows as $tr) {
+                    $perscovalues[$tr->attemptid][$tr->scoid][$tr->elementid] = $tr->value;
+                }
+                foreach ($perscovalues as $attid => $scos) {
+                    if (!isset($attemptowner[$attid])) {
+                        continue;
                     }
-                    foreach ($perscovalues as $attid => $scos) {
-                        if (!isset($attemptowner[$attid])) continue;
-                        $owner = $attemptowner[$attid];
-                        $ownerscormid = $owner['scormid'];
-                        foreach ($scos as $scoid => $elvals) {
-                            $secs = 0;
-                            foreach (['cmi.core.total_time', 'cmi.total_time', 'cmi.core.session_time', 'cmi.session_time'] as $en) {
-                                $elid = $timeelids[$en] ?? null;
-                                if ($elid && isset($elvals[$elid]) && $elvals[$elid] !== '') {
-                                    $secs = block_scormreport_parse_scorm_time($elvals[$elid]);
-                                    break;
-                                }
+                    $owner = $attemptowner[$attid];
+                    $ownerscormid = $owner['scormid'];
+                    foreach ($scos as $scoid => $elvals) {
+                        $secs = 0;
+                        foreach (['cmi.core.total_time', 'cmi.total_time', 'cmi.core.session_time', 'cmi.session_time'] as $en) {
+                            $elid = $timeelids[$en] ?? null;
+                            if ($elid && isset($elvals[$elid]) && $elvals[$elid] !== '') {
+                                $secs = block_scormreport_parse_scorm_time($elvals[$elid]);
+                                break;
                             }
-                            $key = $owner['userid'] . '|' . $ownerscormid . '|' . $scoid;
-                            if (!isset($perscomax[$key]) || $secs > $perscomax[$key]['secs']) {
-                                $perscomax[$key] = ['userid' => $owner['userid'], 'scormid' => $ownerscormid, 'secs' => $secs];
-                            }
+                        }
+                        $key = $owner['userid'] . '|' . $ownerscormid . '|' . $scoid;
+                        if (!isset($perscomax[$key]) || $secs > $perscomax[$key]['secs']) {
+                            $perscomax[$key] = ['userid' => $owner['userid'], 'scormid' => $ownerscormid, 'secs' => $secs];
                         }
                     }
                 }
-                // Add the max time of each SCO to its SCORM total.
-                foreach ($perscomax as $info) {
-                    $timeallmap[$info['userid']][$info['scormid']] =
-                        ($timeallmap[$info['userid']][$info['scormid']] ?? 0) + $info['secs'];
-                }
+            }
+            // Add the max time of each SCO to its SCORM total.
+            foreach ($perscomax as $info) {
+                $timeallmap[$info['userid']][$info['scormid']] =
+                    ($timeallmap[$info['userid']][$info['scormid']] ?? 0) + $info['secs'];
             }
         }
+    }
 
         // 8. Access dates — ALL attempts (chunked)
         $accessmap = [];
         $scoaccessmap = [];
-        if (!empty($allattemptids)) {
-            foreach (array_chunk($allattemptids, 500) as $chunk) {
-                list($insqlatt2, $paramsatt2) = $DB->get_in_or_equal($chunk, SQL_PARAMS_NAMED, 'at2');
-                $accessrows = $DB->get_records_sql(
-                    "SELECT MIN(sv.id) AS id, sa.userid, sa.scormid, sv.scoid,
+    if (!empty($allattemptids)) {
+        foreach (array_chunk($allattemptids, 500) as $chunk) {
+            [$insqlatt2, $paramsatt2] = $DB->get_in_or_equal($chunk, SQL_PARAMS_NAMED, 'at2');
+            $accessrows = $DB->get_records_sql(
+                "SELECT MIN(sv.id) AS id, sa.userid, sa.scormid, sv.scoid,
                             MIN(sv.timemodified) AS fa, MAX(sv.timemodified) AS la
                        FROM {scorm_scoes_value} sv
                        JOIN {scorm_attempt} sa ON sa.id = sv.attemptid
                       WHERE sv.attemptid $insqlatt2
                       GROUP BY sa.userid, sa.scormid, sv.scoid",
-                    $paramsatt2
-                );
-                foreach ($accessrows as $row) {
-                    if (!isset($accessmap[$row->userid][$row->scormid])) {
-                        $accessmap[$row->userid][$row->scormid] = (object)['fa' => $row->fa, 'la' => $row->la];
-                    } else {
-                        $acc = $accessmap[$row->userid][$row->scormid];
-                        if ($row->fa && ($row->fa < $acc->fa || !$acc->fa)) $acc->fa = $row->fa;
-                        if ($row->la && ($row->la > $acc->la || !$acc->la)) $acc->la = $row->la;
+                $paramsatt2
+            );
+            foreach ($accessrows as $row) {
+                if (!isset($accessmap[$row->userid][$row->scormid])) {
+                    $accessmap[$row->userid][$row->scormid] = (object)['fa' => $row->fa, 'la' => $row->la];
+                } else {
+                    $acc = $accessmap[$row->userid][$row->scormid];
+                    if ($row->fa && ($row->fa < $acc->fa || !$acc->fa)) {
+                        $acc->fa = $row->fa;
                     }
-                    // Merge MIN/MAX for sco access across chunks (not overwrite).
-                    if (!isset($scoaccessmap[$row->userid][$row->scormid][$row->scoid])) {
-                        $scoaccessmap[$row->userid][$row->scormid][$row->scoid] = (object)[
-                            'fa' => $row->fa, 'la' => $row->la,
-                        ];
-                    } else {
-                        $sca = $scoaccessmap[$row->userid][$row->scormid][$row->scoid];
-                        if ($row->fa && ($row->fa < $sca->fa || !$sca->fa)) $sca->fa = $row->fa;
-                        if ($row->la && ($row->la > $sca->la || !$sca->la)) $sca->la = $row->la;
+                    if ($row->la && ($row->la > $acc->la || !$acc->la)) {
+                        $acc->la = $row->la;
                     }
-                } // foreach accessrows
-            } // foreach chunk
-        } // if attemptids
-
+                }
+                // Merge MIN/MAX for sco access across chunks (not overwrite).
+                if (!isset($scoaccessmap[$row->userid][$row->scormid][$row->scoid])) {
+                    $scoaccessmap[$row->userid][$row->scormid][$row->scoid] = (object)[
+                        'fa' => $row->fa, 'la' => $row->la,
+                    ];
+                } else {
+                    $sca = $scoaccessmap[$row->userid][$row->scormid][$row->scoid];
+                    if ($row->fa && ($row->fa < $sca->fa || !$sca->fa)) {
+                        $sca->fa = $row->fa;
+                    }
+                    if ($row->la && ($row->la > $sca->la || !$sca->la)) {
+                        $sca->la = $row->la;
+                    }
+                }
+            } // foreach accessrows
+        } // foreach chunk
+    } // if attemptids
 
     // ═══════════════════════════════════════════════════════════════════════
     // 9. Build report in memory (no more DB queries)
@@ -292,7 +324,9 @@ function block_scormreport_get_data($courseid, $userid, $scormid, $context, $cou
     $detaildata = [];
 
     foreach ($students as $student) {
-        if ($userid && $student->id != $userid) continue;
+        if ($userid && $student->id != $userid) {
+            continue;
+        }
 
         $totalseconds = 0;
         $scores = [];
@@ -303,7 +337,9 @@ function block_scormreport_get_data($courseid, $userid, $scormid, $context, $cou
         $scormdetails = []; // Per-SCORM detail for the dropdown
 
         foreach ($scorms as $scorm) {
-            if ($scormid && $scorm->id != $scormid) continue;
+            if ($scormid && $scorm->id != $scormid) {
+                continue;
+            }
 
             $attemptid = $attemptmap[$student->id][$scorm->id] ?? null;
             $ismultisco = ($scocounts[$scorm->id] ?? 0) > 1;
@@ -344,13 +380,22 @@ function block_scormreport_get_data($courseid, $userid, $scormid, $context, $cou
 
             if ($ismultisco) {
                 $data = block_scormreport_build_multisco(
-                    $scorm, $student, $attemptid, $elementids,
-                    $valuesmap, $scoaccessmap, $scosbyscorm[$scorm->id] ?? []
+                    $scorm,
+                    $student,
+                    $attemptid,
+                    $elementids,
+                    $valuesmap,
+                    $scoaccessmap,
+                    $scosbyscorm[$scorm->id] ?? []
                 );
             } else {
                 $data = block_scormreport_build_singlesco(
-                    $scorm, $student, $attemptid, $elementids,
-                    $valuesmap, $accessmap
+                    $scorm,
+                    $student,
+                    $attemptid,
+                    $elementids,
+                    $valuesmap,
+                    $accessmap
                 );
             }
 
@@ -380,8 +425,12 @@ function block_scormreport_get_data($courseid, $userid, $scormid, $context, $cou
                         $scores[] = $scoreval;
                     }
                 }
-                if (!empty($data['firstaccess_ts'])) $firstaccesses[] = $data['firstaccess_ts'];
-                if (!empty($data['lastaccess_ts']))  $lastaccesses[]  = $data['lastaccess_ts'];
+                if (!empty($data['firstaccess_ts'])) {
+                    $firstaccesses[] = $data['firstaccess_ts'];
+                }
+                if (!empty($data['lastaccess_ts'])) {
+                    $lastaccesses[]  = $data['lastaccess_ts'];
+                }
 
                 $multisco   = !empty($data['multisco']);
 
@@ -392,7 +441,9 @@ function block_scormreport_get_data($courseid, $userid, $scormid, $context, $cou
                     $seenscos   = 0;
                     if (!empty($data['scos'])) {
                         foreach ($data['scos'] as $sco) {
-                            if ($sco['status'] !== 'notattempted') $seenscos++;
+                            if ($sco['status'] !== 'notattempted') {
+                                $seenscos++;
+                            }
                         }
                     }
                     $seen   += $seenscos;
@@ -402,7 +453,9 @@ function block_scormreport_get_data($courseid, $userid, $scormid, $context, $cou
                     $totalscos  = 1;
                     $passedscos = block_scormreport_is_passed($data['status']) ? 1 : 0;
                     $seen++;
-                    if (block_scormreport_is_passed($data['status'])) $passed++;
+                    if (block_scormreport_is_passed($data['status'])) {
+                        $passed++;
+                    }
                 }
                 $pctscos = $totalscos > 0 ? round(($passedscos / $totalscos) * 100, 1) . '%' : '-';
 
@@ -475,12 +528,16 @@ function block_scormreport_get_data($courseid, $userid, $scormid, $context, $cou
         }
 
         $scormsbase   = $totalscorms;
-        $pctvistos    = $scormsbase > 0 ? round(($seen   / $scormsbase) * 100, 1) : 0;
+        $pctvistos    = $scormsbase > 0 ? round(($seen / $scormsbase) * 100, 1) : 0;
         $pctsuperados = $scormsbase > 0 ? round(($passed / $scormsbase) * 100, 1) : 0;
 
-        if (count($scores) === 0)     $notamedia = '-';
-        elseif (count($scores) === 1) $notamedia = $scores[0];
-        else                          $notamedia = round(array_sum($scores) / count($scores), 1);
+        if (count($scores) === 0) {
+            $notamedia = '-';
+        } else if (count($scores) === 1) {
+            $notamedia = $scores[0];
+        } else {
+            $notamedia = round(array_sum($scores) / count($scores), 1);
+        }
 
         // Calculate % time over total course hours
         $pcttotal = '-';
@@ -505,9 +562,9 @@ function block_scormreport_get_data($courseid, $userid, $scormid, $context, $cou
             'passed'       => $passed,
             'scormdetails' => $scormdetails,
             'firstaccess'    => !empty($firstaccesses) ? userdate(min($firstaccesses), '%d/%m/%Y %H:%M') : '-',
-            'lastaccess'     => !empty($lastaccesses)  ? userdate(max($lastaccesses), '%d/%m/%Y %H:%M')  : '-',
+            'lastaccess'     => !empty($lastaccesses) ? userdate(max($lastaccesses), '%d/%m/%Y %H:%M') : '-',
             'firstaccess_ts' => !empty($firstaccesses) ? min($firstaccesses) : 0,
-            'lastaccess_ts'  => !empty($lastaccesses)  ? max($lastaccesses)  : 0,
+            'lastaccess_ts'  => !empty($lastaccesses) ? max($lastaccesses) : 0,
             'userid'       => $student->id,
             'attempts_total' => array_sum($attemptcountmap[$student->id] ?? []),
             'fullreport'   => $CFG->wwwroot . '/report/outline/user.php?id=' . $student->id . '&course=' . $courseid . '&mode=complete',
@@ -561,7 +618,9 @@ function block_scormreport_build_singlesco($scorm, $student, $attemptid, $elemen
         }
     }
 
-    if (empty($values)) return null;
+    if (empty($values)) {
+        return null;
+    }
 
     $totalseconds = block_scormreport_calc_time($values, $elementids);
     $score  = block_scormreport_calc_score($values, $elementids);
@@ -587,7 +646,9 @@ function block_scormreport_build_singlesco($scorm, $student, $attemptid, $elemen
  * Build data for a multi-SCO SCORM from the preloaded maps.
  */
 function block_scormreport_build_multisco($scorm, $student, $attemptid, $elementids, $valuesmap, $scoaccessmap, $scos) {
-    if (empty($scos)) return null;
+    if (empty($scos)) {
+        return null;
+    }
 
     $totalseconds = 0;
     $scores = [];
@@ -612,15 +673,23 @@ function block_scormreport_build_multisco($scorm, $student, $attemptid, $element
         $initiated++;
         $totalseconds += $secs;
         $sc = block_scormreport_calc_score($values, $elementids);
-        if ($sc !== false) $scores[] = (float)$sc;
+        if ($sc !== false) {
+            $scores[] = (float)$sc;
+        }
         $st = block_scormreport_calc_status($values, $elementids);
-        if (block_scormreport_is_passed($st)) $passed++;
+        if (block_scormreport_is_passed($st)) {
+            $passed++;
+        }
 
         $acc = $scoaccessmap[$student->id][$scorm->id][$sco->id] ?? null;
         $fa = ($acc && !empty($acc->fa)) ? userdate($acc->fa, '%d/%m/%Y %H:%M') : '-';
         $la = ($acc && !empty($acc->la)) ? userdate($acc->la, '%d/%m/%Y %H:%M') : '-';
-        if ($acc && !empty($acc->fa) && $acc->fa < $firstaccess) $firstaccess = $acc->fa;
-        if ($acc && !empty($acc->la) && $acc->la > $lastaccess) $lastaccess = $acc->la;
+        if ($acc && !empty($acc->fa) && $acc->fa < $firstaccess) {
+            $firstaccess = $acc->fa;
+        }
+        if ($acc && !empty($acc->la) && $acc->la > $lastaccess) {
+            $lastaccess = $acc->la;
+        }
 
         $scodetails[] = [
             'title' => $sco->title, 'seconds' => $secs, 'score' => $sc,
@@ -628,7 +697,9 @@ function block_scormreport_build_multisco($scorm, $student, $attemptid, $element
         ];
     }
 
-    if ($initiated === 0) return null;
+    if ($initiated === 0) {
+        return null;
+    }
 
     $totalscos = count($scos);
     $globalstatus = ($passed === $totalscos) ? 'passed' : 'incomplete';
@@ -656,12 +727,21 @@ function block_scormreport_build_multisco($scorm, $student, $attemptid, $element
 // Pure calculation functions (no DB)
 // ═══════════════════════════════════════════════════════════════════════════
 
+/**
+ * Calculate the tracked time in seconds.
+ *
+ * @param array $values Recorded SCORM values.
+ * @param array $elementids SCORM element identifiers.
+ * @return int
+ */
 function block_scormreport_calc_time(array $values, array $elementids): int {
     // Priority: total_time > session_time as fallback.
     foreach (['cmi.core.total_time', 'cmi.total_time'] as $t) {
         if (isset($elementids[$t], $values[$elementids[$t]])) {
             $secs = block_scormreport_parse_scorm_time($values[$elementids[$t]]);
-            if ($secs > 0) return $secs;
+            if ($secs > 0) {
+                return $secs;
+            }
         }
     }
     // Fallback to session_time only if no total_time (SCORM 1.2 and 2004).
@@ -673,16 +753,32 @@ function block_scormreport_calc_time(array $values, array $elementids): int {
     return 0;
 }
 
+/**
+ * Find the score recorded by the SCORM activity.
+ *
+ * @param array $values Recorded SCORM values.
+ * @param array $elementids SCORM element identifiers.
+ * @return mixed
+ */
 function block_scormreport_calc_score(array $values, array $elementids) {
     foreach (['cmi.core.score.raw', 'cmi.score.raw'] as $s) {
-        if (isset($elementids[$s], $values[$elementids[$s]])
-            && $values[$elementids[$s]] !== '' && is_numeric($values[$elementids[$s]])) {
+        if (
+            isset($elementids[$s], $values[$elementids[$s]])
+            && $values[$elementids[$s]] !== '' && is_numeric($values[$elementids[$s]])
+        ) {
             return $values[$elementids[$s]];
         }
     }
     return false;
 }
 
+/**
+ * Determine the report status for the recorded SCORM attempt.
+ *
+ * @param array $values Recorded SCORM values.
+ * @param array $elementids SCORM element identifiers.
+ * @return string
+ */
 function block_scormreport_calc_status(array $values, array $elementids): string {
     // SCORM 2004: when present, success_status decides passed/failed.
     if (isset($elementids['cmi.success_status'], $values[$elementids['cmi.success_status']])) {
@@ -693,33 +789,58 @@ function block_scormreport_calc_status(array $values, array $elementids): string
     }
 
     // SCORM 1.2: lesson_status is usually the primary status.
-    if (isset($elementids['cmi.core.lesson_status'], $values[$elementids['cmi.core.lesson_status']])
-        && $values[$elementids['cmi.core.lesson_status']] !== '') {
+    if (
+        isset($elementids['cmi.core.lesson_status'], $values[$elementids['cmi.core.lesson_status']])
+        && $values[$elementids['cmi.core.lesson_status']] !== ''
+    ) {
         return $values[$elementids['cmi.core.lesson_status']];
     }
 
     // SCORM 2004: completion_status como fallback.
-    if (isset($elementids['cmi.completion_status'], $values[$elementids['cmi.completion_status']])
-        && $values[$elementids['cmi.completion_status']] !== '') {
+    if (
+        isset($elementids['cmi.completion_status'], $values[$elementids['cmi.completion_status']])
+        && $values[$elementids['cmi.completion_status']] !== ''
+    ) {
         return $values[$elementids['cmi.completion_status']];
     }
 
     return 'incomplete';
 }
 
+/**
+ * Check whether a SCORM status counts as passed in the report.
+ *
+ * @param string $status Report status.
+ * @return bool
+ */
 function block_scormreport_is_passed($status) {
     // Both 'passed' and 'completed' count as passed for percentage/threshold.
     // The visual badge still distinguishes them (see block_scormreport_get_badge_info).
     return in_array(strtolower(trim($status)), ['passed', 'completed']);
 }
 
+/**
+ * Check whether a SCORM status counts as completed in the report.
+ *
+ * @param string $status Report status.
+ * @return bool
+ */
 function block_scormreport_is_completed($status) {
     return in_array(strtolower(trim($status)), ['passed', 'completed']);
 }
 
+/**
+ * Format a duration for display in the report.
+ *
+ * @param int $seconds Duration in seconds.
+ * @return string
+ */
 function block_scormreport_hms($seconds) {
-    if ($seconds <= 0) return '-';
-    return sprintf('%02d:%02d:%02d',
+    if ($seconds <= 0) {
+        return '-';
+    }
+    return sprintf(
+        '%02d:%02d:%02d',
         (int)floor($seconds / 3600),
         (int)floor(($seconds % 3600) / 60),
         (int)($seconds % 60)
@@ -734,7 +855,9 @@ function block_scormreport_hms($seconds) {
  * @return int seconds
  */
 function block_scormreport_parse_scorm_time($timestr): int {
-    if (empty($timestr)) return 0;
+    if (empty($timestr)) {
+        return 0;
+    }
     // SCORM 2004 ISO 8601 duration: PT1H30M45S
     if (preg_match('/^PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+(?:\.\d+)?)S)?$/', $timestr, $m)) {
         return (int)(
@@ -775,16 +898,16 @@ function block_scormreport_escape_spreadsheet($value) {
 function block_scormreport_get_badge_info($status) {
     switch (strtolower(trim($status))) {
         case 'passed':
-            return ['badge' => 'badge-success', 'label' => get_string('passed',       'block_scormreport')];
+            return ['badge' => 'badge-success', 'label' => get_string('passed', 'block_scormreport')];
         case 'completed':
-            return ['badge' => 'badge-info',    'label' => get_string('completed',     'block_scormreport')];
+            return ['badge' => 'badge-info', 'label' => get_string('completed', 'block_scormreport')];
         case 'failed':
-            return ['badge' => 'badge-danger',  'label' => get_string('failed',        'block_scormreport')];
+            return ['badge' => 'badge-danger', 'label' => get_string('failed', 'block_scormreport')];
         case 'incomplete':
-            return ['badge' => 'badge-warning', 'label' => get_string('incomplete',    'block_scormreport')];
+            return ['badge' => 'badge-warning', 'label' => get_string('incomplete', 'block_scormreport')];
         case 'notattempted':
         default:
-            return ['badge' => 'badge-secondary','label' => get_string('notattempted', 'block_scormreport')];
+            return ['badge' => 'badge-secondary', 'label' => get_string('notattempted', 'block_scormreport')];
     }
 }
 
@@ -876,8 +999,12 @@ function block_scormreport_calc_deadline_status(float $pctsuperados, int $startd
  * @param string[] $crud Log operations that count as activity (default: read and update).
  * @return array [userid => ['sessions' => int, 'total_seconds' => int, 'first_login' => int, 'last_login' => int, 'dates' => [date => seconds]]]
  */
-function block_scormreport_get_connections(int $courseid, array $studentids, int $timeout = 1800,
-        array $crud = ['r', 'u']): array {
+function block_scormreport_get_connections(
+    int $courseid,
+    array $studentids,
+    int $timeout = 1800,
+    array $crud = ['r', 'u']
+): array {
     global $DB;
 
     if (empty($studentids)) {
@@ -899,8 +1026,8 @@ function block_scormreport_get_connections(int $courseid, array $studentids, int
     // Use bounded time windows and stream rows. Session state is retained across
     // window boundaries, so historical totals are never truncated.
     foreach (array_chunk($studentids, 500) as $chunk) {
-        list($insql, $params) = $DB->get_in_or_equal($chunk, SQL_PARAMS_NAMED, 'uid');
-        list($crudsql, $crudparams) = $DB->get_in_or_equal($crud, SQL_PARAMS_NAMED, 'crud');
+        [$insql, $params] = $DB->get_in_or_equal($chunk, SQL_PARAMS_NAMED, 'uid');
+        [$crudsql, $crudparams] = $DB->get_in_or_equal($crud, SQL_PARAMS_NAMED, 'crud');
         $params = array_merge($params, $crudparams);
         $params['courseid'] = $courseid;
         $where = "courseid = :courseid AND userid $insql AND anonymous = 0 AND crud $crudsql";
@@ -972,12 +1099,14 @@ function block_scormreport_get_connections(int $courseid, array $studentids, int
  * @return array [attemptid][scoid] => [ ['id'=>, 'response'=>, 'correct'=>, 'result'=>, 'type'=>], ... ]
  */
 function block_scormreport_get_interactions(array $attemptids, $DB): array {
-    if (empty($attemptids)) return [];
+    if (empty($attemptids)) {
+        return [];
+    }
 
     $result = [];
 
     foreach (array_chunk($attemptids, 300) as $chunk) {
-        list($insql, $params) = $DB->get_in_or_equal($chunk, SQL_PARAMS_NAMED, 'iat');
+        [$insql, $params] = $DB->get_in_or_equal($chunk, SQL_PARAMS_NAMED, 'iat');
 
         // Read all interaction elements for these attempts.
         $rows = $DB->get_records_sql(
@@ -1011,7 +1140,9 @@ function block_scormreport_get_interactions(array $attemptids, $DB): array {
                     $corrects = [];
                     foreach ($fields as $fname => $fval) {
                         if (preg_match('/^correct_responses_\d+\.pattern$/', $fname)) {
-                            if ($fval !== '') $corrects[] = $fval;
+                            if ($fval !== '') {
+                                $corrects[] = $fval;
+                            }
                         }
                     }
                     $response = $fields['learner_response'] ?? $fields['student_response'] ?? '-';
@@ -1056,8 +1187,11 @@ function block_scormreport_show_locked_page($PAGE, $OUTPUT, $course, $courseid) 
     } else if ($until > 0) {
         // The license ended and this course started after its end date.
         $title = get_string('locked_course_title', 'block_scormreport');
-        $desc  = get_string('locked_course_desc', 'block_scormreport',
-            userdate($until, get_string('strftimedate', 'langconfig')));
+        $desc  = get_string(
+            'locked_course_desc',
+            'block_scormreport',
+            userdate($until, get_string('strftimedate', 'langconfig'))
+        );
     } else {
         $title = get_string('locked_none_title', 'block_scormreport');
         $desc  = get_string('locked_none_desc', 'block_scormreport');
@@ -1075,7 +1209,8 @@ function block_scormreport_show_locked_page($PAGE, $OUTPUT, $course, $courseid) 
         background:#eaf4fb;border:1px solid #b6d9f0;color:#0b4a6f;
         border-radius:16px;padding:40px 32px;box-shadow:0 4px 18px rgba(0,115,170,0.12);">
         <div style="font-size:2.6rem;margin-bottom:12px;">
-            <svg width="56" height="56" viewBox="0 0 24 24" fill="none" stroke="#0073aa" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;">
+            <svg width="56" height="56" viewBox="0 0 24 24" fill="none" stroke="#0073aa" stroke-width="1.6" '
+                . 'stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;">
                 <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
                 <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
             </svg>
@@ -1097,8 +1232,11 @@ function block_scormreport_show_locked_page($PAGE, $OUTPUT, $course, $courseid) 
     $courseurl = new moodle_url('/course/view.php', ['id' => $courseid]);
     echo '<div style="text-align:center;margin-top:20px;">'
         . $licensebutton
-        . html_writer::link($courseurl, get_string('back', 'block_scormreport'),
-            ['class' => 'btn btn-secondary'])
+        . html_writer::link(
+            $courseurl,
+            get_string('back', 'block_scormreport'),
+            ['class' => 'btn btn-secondary']
+        )
         . '</div>';
 
     echo $OUTPUT->footer();
@@ -1119,7 +1257,7 @@ function block_scormreport_show_locked_page($PAGE, $OUTPUT, $course, $courseid) 
 function block_scormreport_get_daily_connections(int $courseid, int $userid, array $crud = ['r', 'u']): array {
     global $DB, $CFG;
 
-    list($crudsql, $params) = $DB->get_in_or_equal($crud, SQL_PARAMS_NAMED, 'crud');
+    [$crudsql, $params] = $DB->get_in_or_equal($crud, SQL_PARAMS_NAMED, 'crud');
     $params['courseid'] = $courseid;
     $params['userid'] = $userid;
     $where = "courseid = :courseid AND userid = :userid AND anonymous = 0 AND crud $crudsql";
@@ -1153,33 +1291,35 @@ function block_scormreport_get_daily_connections(int $courseid, int $userid, arr
         );
         try {
             foreach ($logs as $log) {
-            $day = userdate($log->timecreated, '%Y-%m-%d');
+                $day = userdate($log->timecreated, '%Y-%m-%d');
 
-            // Determine the activity: context level 70 = module.
-            if ((int)$log->contextlevel === CONTEXT_MODULE && !empty($log->contextinstanceid)
-                && isset($cmnames[$log->contextinstanceid])) {
-                $activity = $cmnames[$log->contextinstanceid];
-            } else {
-                $activity = $courselabel; // course-level event (course view, etc.)
-            }
+                // Determine the activity: context level 70 = module.
+                if (
+                    (int)$log->contextlevel === CONTEXT_MODULE && !empty($log->contextinstanceid)
+                    && isset($cmnames[$log->contextinstanceid])
+                ) {
+                    $activity = $cmnames[$log->contextinstanceid];
+                } else {
+                    $activity = $courselabel; // course-level event (course view, etc.)
+                }
 
-            $key = $day . '||' . $activity;
-            if (!isset($groups[$key])) {
-                $groups[$key] = [
+                $key = $day . '||' . $activity;
+                if (!isset($groups[$key])) {
+                    $groups[$key] = [
                     'date'     => (int)$log->timecreated,
                     'first'    => (int)$log->timecreated,
                     'activity' => $activity,
                     'ips'      => [],
-                ];
-            }
-            // Keep the earliest time for this day+activity.
-            if ((int)$log->timecreated < $groups[$key]['first']) {
-                $groups[$key]['first'] = (int)$log->timecreated;
-                $groups[$key]['date']  = (int)$log->timecreated;
-            }
-            if (!empty($log->ip)) {
-                $groups[$key]['ips'][$log->ip] = true;
-            }
+                    ];
+                }
+                // Keep the earliest time for this day+activity.
+                if ((int)$log->timecreated < $groups[$key]['first']) {
+                    $groups[$key]['first'] = (int)$log->timecreated;
+                    $groups[$key]['date']  = (int)$log->timecreated;
+                }
+                if (!empty($log->ip)) {
+                    $groups[$key]['ips'][$log->ip] = true;
+                }
             }
         } finally {
             $logs->close();
@@ -1196,7 +1336,7 @@ function block_scormreport_get_daily_connections(int $courseid, int $userid, arr
             'ips'      => array_keys($g['ips']),
         ];
     }
-    usort($result, function($a, $b) {
+    usort($result, function ($a, $b) {
         return $a['first'] <=> $b['first'];
     });
 
@@ -1238,7 +1378,7 @@ function block_scormreport_get_course_tutors(context_course $context): array {
     if (empty($roleids)) {
         return [];
     }
-    list($rolesql, $params) = $DB->get_in_or_equal($roleids, SQL_PARAMS_NAMED, 'rid');
+    [$rolesql, $params] = $DB->get_in_or_equal($roleids, SQL_PARAMS_NAMED, 'rid');
     $params['contextid'] = $context->id;
 
     $userfields = \core_user\fields::for_name()->get_sql('u', false, '', '', false)->selects;
@@ -1282,11 +1422,14 @@ function block_scormreport_is_course_tutor(context_course $context, int $userid)
     if (empty($roleids)) {
         return false;
     }
-    list($rolesql, $params) = $DB->get_in_or_equal($roleids, SQL_PARAMS_NAMED, 'rid');
+    [$rolesql, $params] = $DB->get_in_or_equal($roleids, SQL_PARAMS_NAMED, 'rid');
     $params['contextid'] = $context->id;
     $params['userid'] = $userid;
-    return $DB->record_exists_select('role_assignments',
-        "contextid = :contextid AND userid = :userid AND roleid $rolesql", $params);
+    return $DB->record_exists_select(
+        'role_assignments',
+        "contextid = :contextid AND userid = :userid AND roleid $rolesql",
+        $params
+    );
 }
 
 /**

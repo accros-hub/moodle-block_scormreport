@@ -13,6 +13,7 @@
 //
 // You should have received a copy of the GNU General Public License
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
+
 /**
  * Helper functions for block_scormreport.
  *
@@ -25,8 +26,10 @@ namespace block_scormreport;
 
 defined('MOODLE_INTERNAL') || die();
 
+/**
+ * Provides shared helpers for the SCORM Report block.
+ */
 class helper {
-
     /**
      * Add the scormreport block to a course if it doesn't already exist.
      *

@@ -13,6 +13,7 @@
 //
 // You should have received a copy of the GNU General Public License
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
+
 /**
  * Settings for block_scormreport.
  *
@@ -24,7 +25,6 @@
 defined('MOODLE_INTERNAL') || die();
 
 if ($ADMIN->fulltree) {
-
     // ── License status & activation ──
     $expiry = \block_scormreport\license::effective_expiry();
     $valid  = \block_scormreport\license::is_valid();
@@ -79,9 +79,9 @@ if ($ADMIN->fulltree) {
         get_string('setting_default_channel_desc', 'block_scormreport'),
         'internal',
         [
-            'email'    => get_string('channelemail',    'block_scormreport'),
+            'email'    => get_string('channelemail', 'block_scormreport'),
             'internal' => get_string('channelinternal', 'block_scormreport'),
-            'both'     => get_string('channelboth',     'block_scormreport'),
+            'both'     => get_string('channelboth', 'block_scormreport'),
         ]
     ));
 
@@ -167,7 +167,9 @@ if ($ADMIN->fulltree) {
     // Roles that see ALL courses in the dashboard.
     $defaultall = [];
     foreach ($allroles as $r) {
-        if ($r->shortname === 'manager') $defaultall[] = $r->id;
+        if ($r->shortname === 'manager') {
+            $defaultall[] = $r->id;
+        }
     }
     $settings->add(new admin_setting_configmultiselect(
         'block_scormreport/dashboard_roles_all',
@@ -180,7 +182,9 @@ if ($ADMIN->fulltree) {
     // Roles that see ONLY their own courses (enrolled with that role).
     $defaultown = [];
     foreach ($allroles as $r) {
-        if (in_array($r->shortname, ['supervisor', 'profesor', 'gcurso'])) $defaultown[] = $r->id;
+        if (in_array($r->shortname, ['supervisor', 'profesor', 'gcurso'])) {
+            $defaultown[] = $r->id;
+        }
     }
     $settings->add(new admin_setting_configmultiselect(
         'block_scormreport/dashboard_roles_own',

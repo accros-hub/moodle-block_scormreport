@@ -13,6 +13,7 @@
 //
 // You should have received a copy of the GNU General Public License
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
+
 /**
 
 /**
@@ -55,8 +56,11 @@ $activity = $tutors ? block_scormreport_get_tutor_daily_activity($courseid, arra
 echo $OUTPUT->header();
 
 $reporturl = new moodle_url('/blocks/scormreport/report.php', ['courseid' => $courseid]);
-echo html_writer::link($reporturl, get_string('backtoreport', 'block_scormreport'),
-    ['class' => 'btn btn-secondary mb-3']);
+echo html_writer::link(
+    $reporturl,
+    get_string('backtoreport', 'block_scormreport'),
+    ['class' => 'btn btn-secondary mb-3']
+);
 
 echo $OUTPUT->heading(get_string('tutoractivity', 'block_scormreport'), 3);
 echo html_writer::tag('p', get_string('tutoractivity_desc', 'block_scormreport'), ['class' => 'text-muted']);
@@ -67,7 +71,7 @@ if (empty($tutors)) {
     exit;
 }
 
-$fmt = function(int $ts): string {
+$fmt = function (int $ts): string {
     return $ts ? userdate($ts, '%d/%m/%Y %H:%M') : '-';
 };
 
@@ -106,13 +110,17 @@ foreach ($tutors as $tutor) {
     echo html_writer::tag('td', count($act['days']), ['style' => 'text-align:center;']);
     echo html_writer::tag('td', (int)$act['connections'], ['style' => 'text-align:center;']);
     if ($canexport) {
-        $connurl = new moodle_url('/blocks/scormreport/generate_connections_pdf.php',
-            ['courseid' => $courseid, 'userid' => $tutor->id]);
-        $button = html_writer::link($connurl,
+        $connurl = new moodle_url(
+            '/blocks/scormreport/generate_connections_pdf.php',
+            ['courseid' => $courseid, 'userid' => $tutor->id]
+        );
+        $button = html_writer::link(
+            $connurl,
             '<span style="display:inline-flex;align-items:center;gap:8px;">' . $pdficon . ' '
                 . get_string('printconnections', 'block_scormreport') . '</span>',
             ['class' => 'btn btn-sm', 'target' => '_blank',
-             'style' => 'background:#c0392b;border-color:#c0392b;color:#fff;font-weight:600;white-space:nowrap;']);
+            'style' => 'background:#c0392b;border-color:#c0392b;color:#fff;font-weight:600;white-space:nowrap;']
+        );
         echo html_writer::tag('td', $button);
     }
     echo '</tr>';

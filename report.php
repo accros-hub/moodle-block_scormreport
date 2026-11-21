@@ -13,6 +13,7 @@
 //
 // You should have received a copy of the GNU General Public License
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
+
 /**
  * SCORM report page for teachers.
  * All data is now computed centrally via lib_report.php / block_scormreport_get_data().
@@ -61,9 +62,11 @@ if (!\block_scormreport\license::course_allowed($course)) {
 // Optional columns the user can show/hide. Fixed columns (student, topics,
 // fullreport, logentries) are always shown and not listed here.
 // Truncate a company name to a maximum length with an ellipsis.
-$companyshort = function($name, $max = 30) {
+$companyshort = function ($name, $max = 30) {
     $name = (string)$name;
-    if (mb_strlen($name) <= $max) return $name;
+    if (mb_strlen($name) <= $max) {
+        return $name;
+    }
     return mb_substr($name, 0, $max - 1) . '…';
 };
 
@@ -95,7 +98,7 @@ if ($colpref === null) {
     $visiblecols = ($colpref === '') ? [] : explode(',', $colpref);
 }
 // Helper: is an optional column visible?
-$showcol = function($key) use ($visiblecols) {
+$showcol = function ($key) use ($visiblecols) {
     return in_array($key, $visiblecols);
 };
 
@@ -109,7 +112,7 @@ $deadlinetolerance = max(0, min(100, $deadlinetolerance));
 
 // Determine if the course has ended (final Apt/Not-apt) or is still active (threshold labels).
 $courseended = (!empty($course->enddate) && $course->enddate < time());
-$progressoklabel  = $courseended ? get_string('final_apt', 'block_scormreport')    : get_string('inprogress_ok', 'block_scormreport');
+$progressoklabel  = $courseended ? get_string('final_apt', 'block_scormreport') : get_string('inprogress_ok', 'block_scormreport');
 $progressnolabel  = $courseended ? get_string('final_notapt', 'block_scormreport') : get_string('inprogress_no', 'block_scormreport');
 
 // Toggle automatic reminders
@@ -131,7 +134,9 @@ if ($DB->record_exists('modules', ['name' => 'diploma'])) {
            JOIN {modules} m ON m.id = cm.module
           WHERE cm.course = :courseid AND m.name = 'diploma'
             AND cm.deletioninprogress = 0",
-        ['courseid' => $courseid], 0, 1
+        ['courseid' => $courseid],
+        0,
+        1
     );
     if (!empty($diplomacms)) {
         $diplomacm = reset($diplomacms);
@@ -153,7 +158,6 @@ $totalscorms = $reportdata['totalscorms'];
 
 // ─── Excel export ─────────────────────────────────────────────────────────
 if ($download) {
-
     // PhpSpreadsheet ships with Moodle and is loaded by the core autoloader.
     require_once($CFG->libdir . '/excellib.class.php');
     $phpspreadsheetloaded = class_exists('\\PhpOffice\\PhpSpreadsheet\\Spreadsheet');
@@ -183,17 +187,17 @@ if ($download) {
         if ($isdetail) {
             // Detail view: no links (not applicable per individual SCORM)
             $headers = [
-                get_string('coursename',   'block_scormreport'),
-                get_string('student',      'block_scormreport'),
-                get_string('company',      'block_scormreport'),
-                get_string('dni',          'block_scormreport'),
-                get_string('email',        'block_scormreport'),
-                get_string('scormname',    'block_scormreport'),
-                get_string('timescorm',    'block_scormreport'),
-                get_string('score',        'block_scormreport'),
-                get_string('status',       'block_scormreport'),
-                get_string('firstaccess',  'block_scormreport'),
-                get_string('lastaccess',   'block_scormreport'),
+                get_string('coursename', 'block_scormreport'),
+                get_string('student', 'block_scormreport'),
+                get_string('company', 'block_scormreport'),
+                get_string('dni', 'block_scormreport'),
+                get_string('email', 'block_scormreport'),
+                get_string('scormname', 'block_scormreport'),
+                get_string('timescorm', 'block_scormreport'),
+                get_string('score', 'block_scormreport'),
+                get_string('status', 'block_scormreport'),
+                get_string('firstaccess', 'block_scormreport'),
+                get_string('lastaccess', 'block_scormreport'),
             ];
             $sheet->fromArray($headers, null, 'A1');
             $sheet->getStyle('A1:K1')->applyFromArray($headerstyle);
@@ -202,48 +206,55 @@ if ($download) {
                 $sheet->fromArray(array_map("block_scormreport_escape_spreadsheet", [
                     $course->fullname,
                     $row['studentname'], $row['company'] ?? '', $row['dni'], $row['email'], $row['scormname'],
-                    $row['timescorm'],   $row['score'],     $row['status'],
+                    $row['timescorm'], $row['score'], $row['status'],
                     $row['firstaccess'], $row['lastaccess'],
                 ]), null, 'A' . $rownum);
-                $sheet->getStyle('G'.$rownum.':I'.$rownum)->applyFromArray($centerstyle);
+                $sheet->getStyle('G' . $rownum . ':I' . $rownum)->applyFromArray($centerstyle);
                 if ($rownum % 2 === 0) {
-                    $sheet->getStyle('A'.$rownum.':K'.$rownum)->applyFromArray($altrowstyle);
+                    $sheet->getStyle('A' . $rownum . ':K' . $rownum)->applyFromArray($altrowstyle);
                 }
                 $rownum++;
             }
-            foreach (range('A','J') as $col) $sheet->getColumnDimension($col)->setAutoSize(true);
-
+            foreach (range('A', 'J') as $col) {
+                $sheet->getColumnDimension($col)->setAutoSize(true);
+            }
         } else {
             // Global view: columns follow the user's column selection.
             // Fixed: Course, Student. Then the selected optional columns.
             // Fixed at the end: full report + log entries links.
             $colmap = [
-                'username'     => ['label' => get_string('username', 'block_scormreport'),     'val' => fn($r) => $r['username'] ?? ''],
-                'email'        => ['label' => get_string('email', 'block_scormreport'),        'val' => fn($r) => $r['email'] ?? ''],
-                'dni'          => ['label' => get_string('dni', 'block_scormreport'),          'val' => fn($r) => $r['dni'] ?? ''],
-                'company'      => ['label' => get_string('company', 'block_scormreport'),      'val' => fn($r) => $r['company'] ?? ''],
-                'timescorm'    => ['label' => get_string('timescorm', 'block_scormreport'),    'val' => fn($r) => $r['timescorm']],
-                'pcttimecourse'=> ['label' => get_string('pcttimecourse', 'block_scormreport'),'val' => fn($r) => $r['pcttotal']],
-                'score'        => ['label' => get_string('score', 'block_scormreport'),        'val' => fn($r) => $r['score']],
-                'pctvistos'    => ['label' => get_string('pctvistos', 'block_scormreport'),    'val' => fn($r) => $r['pctvistos']],
+                'username'     => ['label' => get_string('username', 'block_scormreport'), 'val' => fn($r) => $r['username'] ?? ''],
+                'email'        => ['label' => get_string('email', 'block_scormreport'), 'val' => fn($r) => $r['email'] ?? ''],
+                'dni'          => ['label' => get_string('dni', 'block_scormreport'), 'val' => fn($r) => $r['dni'] ?? ''],
+                'company'      => ['label' => get_string('company', 'block_scormreport'), 'val' => fn($r) => $r['company'] ?? ''],
+                'timescorm'    => ['label' => get_string('timescorm', 'block_scormreport'), 'val' => fn($r) => $r['timescorm']],
+                'pcttimecourse' => ['label' => get_string('pcttimecourse', 'block_scormreport'), 'val' => fn($r) => $r['pcttotal']],
+                'score'        => ['label' => get_string('score', 'block_scormreport'), 'val' => fn($r) => $r['score']],
+                'pctvistos'    => ['label' => get_string('pctvistos', 'block_scormreport'), 'val' => fn($r) => $r['pctvistos']],
                 'pctsuperados' => ['label' => get_string('pctsuperados', 'block_scormreport'), 'val' => fn($r) => $r['pctsuperados']],
-                'seen'         => ['label' => get_string('topicsseen', 'block_scormreport'),   'val' => fn($r) => $r['seen'] ?? 0],
+                'seen'         => ['label' => get_string('topicsseen', 'block_scormreport'), 'val' => fn($r) => $r['seen'] ?? 0],
                 'passed'       => ['label' => get_string('topicspassed', 'block_scormreport'), 'val' => fn($r) => $r['passed'] ?? 0],
-                'attempts_total'=> ['label' => get_string('attemptstotal', 'block_scormreport'),'val' => fn($r) => $r['attempts_total'] ?? 0],
-                'firstaccess'  => ['label' => get_string('firstaccess', 'block_scormreport'),  'val' => fn($r) => $r['firstaccess']],
-                'lastaccess'   => ['label' => get_string('lastaccess', 'block_scormreport'),   'val' => fn($r) => $r['lastaccess']],
+                'attempts_total' => ['label' => get_string('attemptstotal', 'block_scormreport'), 'val' => fn($r) => $r['attempts_total'] ?? 0],
+                'firstaccess'  => ['label' => get_string('firstaccess', 'block_scormreport'), 'val' => fn($r) => $r['firstaccess']],
+                'lastaccess'   => ['label' => get_string('lastaccess', 'block_scormreport'), 'val' => fn($r) => $r['lastaccess']],
             ];
             // Build the ordered list of active optional columns for Excel.
             $excelcols = [];
-            foreach (['username','email','dni','company','timescorm','pcttimecourse',
-                      'score','pctvistos','pctsuperados','seen','passed','attempts_total',
-                      'firstaccess','lastaccess'] as $ck) {
-                if ($showcol($ck)) $excelcols[] = $ck;
+            foreach (
+                ['username', 'email', 'dni', 'company', 'timescorm', 'pcttimecourse',
+                      'score', 'pctvistos', 'pctsuperados', 'seen', 'passed', 'attempts_total',
+                      'firstaccess', 'lastaccess'] as $ck
+            ) {
+                if ($showcol($ck)) {
+                    $excelcols[] = $ck;
+                }
             }
 
             // Header row.
             $headers = [get_string('coursename', 'block_scormreport'), get_string('student', 'block_scormreport')];
-            foreach ($excelcols as $ck) $headers[] = $colmap[$ck]['label'];
+            foreach ($excelcols as $ck) {
+                $headers[] = $colmap[$ck]['label'];
+            }
             $headers[] = get_string('fullreport', 'block_scormreport');
             $headers[] = get_string('logentries', 'block_scormreport');
             $ncols = count($headers);
@@ -254,7 +265,9 @@ if ($download) {
             $rownum = 2;
             foreach ($globaldata as $row) {
                 $line = [$course->fullname, $row['studentname']];
-                foreach ($excelcols as $ck) $line[] = $colmap[$ck]['val']($row);
+                foreach ($excelcols as $ck) {
+                    $line[] = $colmap[$ck]['val']($row);
+                }
                 $line[] = get_string('fullreport', 'block_scormreport');
                 $line[] = get_string('logentries', 'block_scormreport');
                 $sheet->fromArray(array_map("block_scormreport_escape_spreadsheet", $line), null, 'A' . $rownum);
@@ -267,19 +280,22 @@ if ($download) {
                 $sheet->getStyle($linkcol1 . $rownum . ':' . $linkcol2 . $rownum)->applyFromArray($linkstyle);
 
                 if ($rownum % 2 === 0) {
-                    $sheet->getStyle('A'.$rownum.':'.$lastcol.$rownum)->applyFromArray($altrowstyle);
+                    $sheet->getStyle('A' . $rownum . ':' . $lastcol . $rownum)->applyFromArray($altrowstyle);
                 }
                 $rownum++;
             }
-            foreach (range('A', $lastcol) as $col) $sheet->getColumnDimension($col)->setAutoSize(true);
+            foreach (range('A', $lastcol) as $col) {
+                $sheet->getColumnDimension($col)->setAutoSize(true);
+            }
         }
 
         $lastrow = $sheet->getHighestRow() + 1;
-        $sheet->setCellValue('A'.$lastrow,
-            get_string('totalstudents','block_scormreport').': '.count($students).
-            '   |   '.get_string('totalscorms','block_scormreport').': '.$totalscorms
+        $sheet->setCellValue(
+            'A' . $lastrow,
+            get_string('totalstudents', 'block_scormreport') . ': ' . count($students) .
+            '   |   ' . get_string('totalscorms', 'block_scormreport') . ': ' . $totalscorms
         );
-        $sheet->getStyle('A'.$lastrow)->getFont()->setItalic(true);
+        $sheet->getStyle('A' . $lastrow)->getFont()->setItalic(true);
 
         // ── Sheet 2: SCO matrix (student x SCORM) ──
         $sheet2 = $spreadsheet->createSheet();
@@ -299,7 +315,9 @@ if ($download) {
         $sheet2->getStyle('A1:I1')->applyFromArray($headerstyle);
         $mrow = 2;
         foreach ($globaldata as $row) {
-            if (empty($row['scormdetails'])) continue;
+            if (empty($row['scormdetails'])) {
+                continue;
+            }
             foreach ($row['scormdetails'] as $sd) {
                 $badgeinfo = block_scormreport_get_badge_info($sd['status']);
                 $sheet2->fromArray(array_map('block_scormreport_escape_spreadsheet', [
@@ -307,79 +325,80 @@ if ($download) {
                     $sd['scormname'], $sd['timescorm'], $sd['score'],
                     $badgeinfo['label'], $sd['firstaccess'], $sd['lastaccess'],
                 ]), null, 'A' . $mrow);
-                $sheet2->getStyle('E'.$mrow.':G'.$mrow)->applyFromArray($centerstyle);
+                $sheet2->getStyle('E' . $mrow . ':G' . $mrow)->applyFromArray($centerstyle);
                 if ($mrow % 2 === 0) {
-                    $sheet2->getStyle('A'.$mrow.':I'.$mrow)->applyFromArray($altrowstyle);
+                    $sheet2->getStyle('A' . $mrow . ':I' . $mrow)->applyFromArray($altrowstyle);
                 }
                 $mrow++;
             }
         }
-        foreach (range('A','I') as $col) $sheet2->getColumnDimension($col)->setAutoSize(true);
+        foreach (range('A', 'I') as $col) {
+            $sheet2->getColumnDimension($col)->setAutoSize(true);
+        }
         $spreadsheet->setActiveSheetIndex(0); // Back to the first sheet
 
-        $filename = clean_filename('scorm_report_'.$course->shortname.'_'.date('Ymd_His'));
+        $filename = clean_filename('scorm_report_' . $course->shortname . '_' . date('Ymd_His'));
         header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
-        header('Content-Disposition: attachment; filename="'.$filename.'.xlsx"');
+        header('Content-Disposition: attachment; filename="' . $filename . '.xlsx"');
         header('Cache-Control: max-age=0');
         $writer = new \PhpOffice\PhpSpreadsheet\Writer\Xlsx($spreadsheet);
         $writer->save('php://output');
         exit;
-
     } else {
         // Fallback: CSV with semicolons
-        $filename = clean_filename('scorm_report_'.$course->shortname.'_'.date('Ymd_His'));
+        $filename = clean_filename('scorm_report_' . $course->shortname . '_' . date('Ymd_His'));
         header('Content-Type: text/csv; charset=utf-8');
-        header('Content-Disposition: attachment; filename="'.$filename.'.csv"');
+        header('Content-Disposition: attachment; filename="' . $filename . '.csv"');
         header('Cache-Control: max-age=0');
         echo "\xEF\xBB\xBF";
         $fp = fopen('php://output', 'w');
         if ($isdetail) {
             fputcsv($fp, [
-                get_string('coursename',  'block_scormreport'),
-                get_string('student',     'block_scormreport'),
-                get_string('company',     'block_scormreport'),
+                get_string('coursename', 'block_scormreport'),
+                get_string('student', 'block_scormreport'),
+                get_string('company', 'block_scormreport'),
                 get_string('dni', 'block_scormreport'),
-                get_string('email',       'block_scormreport'),
-                get_string('scormname',   'block_scormreport'),
-                get_string('timescorm',   'block_scormreport'),
-                get_string('score',       'block_scormreport'),
-                get_string('status',      'block_scormreport'),
+                get_string('email', 'block_scormreport'),
+                get_string('scormname', 'block_scormreport'),
+                get_string('timescorm', 'block_scormreport'),
+                get_string('score', 'block_scormreport'),
+                get_string('status', 'block_scormreport'),
                 get_string('firstaccess', 'block_scormreport'),
-                get_string('lastaccess',  'block_scormreport'),
+                get_string('lastaccess', 'block_scormreport'),
             ], ';');
             foreach ($detaildata as $row) {
                 fputcsv($fp, array_map('block_scormreport_escape_spreadsheet', [
                     $course->fullname,
                     $row['studentname'], $row['company'] ?? '', $row['dni'], $row['email'], $row['scormname'],
-                    $row['timescorm'],   $row['score'],     $row['status'],
+                    $row['timescorm'], $row['score'], $row['status'],
                     $row['firstaccess'], $row['lastaccess'],
                 ]), ';');
             }
         } else {
             fputcsv($fp, [
-                get_string('coursename',   'block_scormreport'),
-                get_string('student',      'block_scormreport'),
-                get_string('company',      'block_scormreport'),
+                get_string('coursename', 'block_scormreport'),
+                get_string('student', 'block_scormreport'),
+                get_string('company', 'block_scormreport'),
                 get_string('dni', 'block_scormreport'),
-                get_string('email',        'block_scormreport'),
-                get_string('timescorm',    'block_scormreport'),
+                get_string('email', 'block_scormreport'),
+                get_string('timescorm', 'block_scormreport'),
                 get_string('pcttimecourse', 'block_scormreport'),
-                get_string('score',        'block_scormreport'),
-                get_string('pctvistos',    'block_scormreport'),
+                get_string('score', 'block_scormreport'),
+                get_string('pctvistos', 'block_scormreport'),
                 get_string('pctsuperados', 'block_scormreport'),
-                get_string('firstaccess',  'block_scormreport'),
-                get_string('lastaccess',   'block_scormreport'),
-                get_string('fullreport',   'block_scormreport'),
-                get_string('logentries',   'block_scormreport'),
+                get_string('firstaccess', 'block_scormreport'),
+                get_string('lastaccess', 'block_scormreport'),
+                get_string('fullreport', 'block_scormreport'),
+                get_string('logentries', 'block_scormreport'),
             ], ';');
             foreach ($globaldata as $row) {
                 fputcsv($fp, array_map('block_scormreport_escape_spreadsheet', [
                     $course->fullname,
                     $row['studentname'], $row['company'] ?? '', $row['dni'], $row['email'],
                     $row['timescorm'], $row['pcttotal'],
-                    $row['score'],       $row['pctvistos'],  $row['pctsuperados'],
+                    $row['score'], $row['pctvistos'], $row['pctsuperados'],
                     $row['firstaccess'], $row['lastaccess'],
-                    $row['fullreport'],  $row['logentries'],
+                    $row['fullreport'], $row['logentries'],
                 ]), ';');
             }
         }
@@ -403,14 +422,18 @@ if (\block_scormreport\license::is_valid() && \block_scormreport\license::get_ty
     echo '<div style="background:#fff3cd;border:1px solid #ffe69c;color:#856404;
         border-radius:10px;padding:10px 16px;margin-bottom:16px;font-weight:600;
         display:inline-flex;align-items:center;gap:8px;">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#856404" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#856404" stroke-width="1.8" '
+            . 'stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
         ' . get_string('trial_days_left', 'block_scormreport', $daysleft) . '
     </div>';
 }
 
 $courseurl = new moodle_url('/course/view.php', ['id' => $courseid]);
-echo html_writer::link($courseurl, get_string('back', 'block_scormreport'),
-    ['class' => 'btn btn-secondary mb-3']);
+echo html_writer::link(
+    $courseurl,
+    get_string('back', 'block_scormreport'),
+    ['class' => 'btn btn-secondary mb-3']
+);
 
 // Columns selector panel (global view only). The toggle button is rendered
 // later, in the action buttons row.
@@ -492,7 +515,7 @@ if (!$isdetail) {
 
 // Get course dates
 $startdate = !empty($course->startdate) ? userdate($course->startdate, '%d/%m/%Y') : '-';
-$enddate   = !empty($course->enddate)   ? userdate($course->enddate,   '%d/%m/%Y') : '-';
+$enddate   = !empty($course->enddate) ? userdate($course->enddate, '%d/%m/%Y') : '-';
 
 // ($coursehours is loaded at the top of the file.)
 
@@ -533,9 +556,13 @@ if ($userid > 0 && count($globaldata) === 1) {
     $avgsuperados = 0;
     if (!empty($globaldata)) {
         $avgvistos    = round(array_sum(array_map(
-            fn($r) => (float)rtrim($r['pctvistos'],    '%'), $globaldata)) / count($globaldata), 1);
+            fn($r) => (float)rtrim($r['pctvistos'], '%'),
+            $globaldata
+        )) / count($globaldata), 1);
         $avgsuperados = round(array_sum(array_map(
-            fn($r) => (float)rtrim($r['pctsuperados'], '%'), $globaldata)) / count($globaldata), 1);
+            fn($r) => (float)rtrim($r['pctsuperados'], '%'),
+            $globaldata
+        )) / count($globaldata), 1);
     }
     echo '
 <div class="scorm-summary-cards mb-4">
@@ -563,7 +590,7 @@ echo '
             <select name="userid" class="form-control" onchange="this.form.submit()">
                 <option value="0">' . get_string('allstudents', 'block_scormreport') . '</option>';
 $sortedstudents = $students;
-usort($sortedstudents, function($a, $b) {
+usort($sortedstudents, function ($a, $b) {
     return strcasecmp(fullname($a), fullname($b));
 });
 foreach ($sortedstudents as $s) {
@@ -586,7 +613,9 @@ echo '      </select></label>';
 if (!$isdetail) {
     $companies = [];
     foreach ($globaldata as $r) {
-        if (!empty($r['company'])) $companies[$r['company']] = true;
+        if (!empty($r['company'])) {
+            $companies[$r['company']] = true;
+        }
     }
     $companies = array_keys($companies);
     sort($companies, SORT_NATURAL | SORT_FLAG_CASE);
@@ -594,7 +623,8 @@ if (!$isdetail) {
         <select id="js-filter-company" class="form-control filter-select-wide">
             <option value="">' . get_string('filterallcompanies', 'block_scormreport') . '</option>';
     foreach ($companies as $comp) {
-        echo '<option value="' . htmlspecialchars(strtolower($comp), ENT_QUOTES) . '" title="' . htmlspecialchars($comp, ENT_QUOTES) . '">' . htmlspecialchars($companyshort($comp)) . '</option>';
+        echo '<option value="' . htmlspecialchars(strtolower($comp), ENT_QUOTES) . '" title="'
+            . htmlspecialchars($comp, ENT_QUOTES) . '">' . htmlspecialchars($companyshort($comp)) . '</option>';
     }
     echo '</select></label>';
 }
@@ -634,29 +664,32 @@ if (!$isdetail) {
 $clearurl = new moodle_url('/blocks/scormreport/report.php', ['courseid' => $courseid]);
 echo '<label style="display:flex;flex-direction:column;justify-content:flex-end;">
             <span style="visibility:hidden;font-size:0.85rem;">.</span>'
-    . html_writer::link($clearurl,
+    . html_writer::link(
+        $clearurl,
         '✕ ' . get_string('clearfilters', 'block_scormreport'),
-        ['class' => 'btn', 'style' => 'background:#8b0000;border:1px solid #8b0000;color:#fff;font-weight:600;white-space:nowrap;'])
+        ['class' => 'btn', 'style' => 'background:#8b0000;border:1px solid #8b0000;color:#fff;font-weight:600;white-space:nowrap;']
+    )
     . '  </label>
     </div>
     <div id="js-filter-count" class="mt-2 text-muted-sub"></div>
 </form>';
 
 if (!$isdetail) {
-// Prepare parameters for the AMD module
-$jsparams = [
+    // Prepare parameters for the AMD module
+    $jsparams = [
     'showingTemplate' => get_string('showingxofy', 'block_scormreport', (object)['visible' => '__VISIBLE__', 'total' => '__TOTAL__']),
     'aptLabel'        => get_string('apt', 'block_scormreport'),
     'notaptLabel'     => get_string('notapt', 'block_scormreport'),
     'aptThreshold'    => $aptthreshold,
     'strViewtopics'   => get_string('viewtopics', 'block_scormreport'),
     'strHidetopics'   => get_string('hidetopics', 'block_scormreport'),
-];
+    ];
 }
 
 // Columns button (first in the action row, global view only).
 if (!$isdetail) {
-    $colicon = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-3px;"><rect x="3" y="3" width="7" height="18"/><rect x="14" y="3" width="7" height="18"/></svg>';
+    $colicon = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" '
+        . 'stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-3px;"><rect x="3" y="3" width="7" height="18"/><rect x="14" y="3" width="7" height="18"/></svg>';
     echo '<button type="button" id="cols-toggle-btn" class="btn mb-3" '
         . 'style="background:#0073aa;border-color:#0073aa;color:#fff;font-weight:600;">'
         . '<span style="display:inline-flex;align-items:center;gap:6px;">' . $colicon . ' ' . get_string('choosecolumns', 'block_scormreport') . '</span></button> ';
@@ -666,7 +699,7 @@ if (!$isdetail) {
 if ($canexport) {
     $exporturl = new moodle_url('/blocks/scormreport/report.php', [
         'courseid' => $courseid, 'userid' => $userid,
-        'scormid'  => $scormid,  'download' => 1,
+        'scormid'  => $scormid, 'download' => 1,
     ]);
     $excelicon = '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">'
         . '<rect width="24" height="24" rx="4" fill="#1D6F42"/>'
@@ -677,34 +710,45 @@ if ($canexport) {
     $excellabel = '<span style="display:inline-flex;align-items:center;gap:8px;">'
         . $excelicon . ' ' . get_string('exportexcel', 'block_scormreport')
         . '</span>';
-    echo html_writer::link($exporturl, $excellabel,
+    echo html_writer::link(
+        $exporturl,
+        $excellabel,
         ['class' => 'btn btn-success mb-3',
-         'style' => 'background:#1D6F42;border-color:#1D6F42;font-weight:600;']);
+        'style' => 'background:#1D6F42;border-color:#1D6F42;font-weight:600;']
+    );
 }
 
 // Reminder button
 if (!$isdetail && $cansendreminders) {
-    $reminderurl = new moodle_url('/blocks/scormreport/send_reminder.php',
-        ['courseid' => $courseid]);
-    echo ' ' . html_writer::link($reminderurl,
+    $reminderurl = new moodle_url(
+        '/blocks/scormreport/send_reminder.php',
+        ['courseid' => $courseid]
+    );
+    echo ' ' . html_writer::link(
+        $reminderurl,
         '<span style="display:inline-flex;align-items:center;gap:6px;">✉ ' . get_string('sendreminder', 'block_scormreport') . '</span>',
         ['class' => 'btn mb-3',
-         'style' => 'background:#e67e22;border-color:#e67e22;color:#fff;font-weight:600;']);
+        'style' => 'background:#e67e22;border-color:#e67e22;color:#fff;font-weight:600;']
+    );
 }
 
 // Full PDF button
 if ($canexport) {
-    $pdfurl = new moodle_url('/blocks/scormreport/generate_report_pdf.php',
-        ['courseid' => $courseid]);
+    $pdfurl = new moodle_url(
+        '/blocks/scormreport/generate_report_pdf.php',
+        ['courseid' => $courseid]
+    );
     $pdficon = '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">'
         . '<rect width="24" height="24" rx="4" fill="#c0392b"/>'
         . '<text x="12" y="16" font-size="9" font-weight="bold" fill="white" text-anchor="middle" font-family="Arial">PDF</text>'
         . '</svg>';
-    echo ' ' . html_writer::link($pdfurl,
+    echo ' ' . html_writer::link(
+        $pdfurl,
         '<span style="display:inline-flex;align-items:center;gap:8px;">' . $pdficon . ' ' . get_string('printreport', 'block_scormreport') . '</span>',
         ['class' => 'btn mb-3',
          'style' => 'background:#c0392b;border-color:#c0392b;color:#fff;font-weight:600;',
-         'target' => '_blank']);
+        'target' => '_blank']
+    );
 }
 
 // Toggle automatic reminders
@@ -720,30 +764,42 @@ if ($cansendreminders && is_siteadmin()) {
     $toggletext = $autoreminderenabled
         ? get_string('autoreminder_on', 'block_scormreport')
         : get_string('autoreminder_off', 'block_scormreport');
-    echo ' ' . html_writer::link($toggleurl,
+    echo ' ' . html_writer::link(
+        $toggleurl,
         '<span style="display:inline-flex;align-items:center;gap:6px;">' . $toggleicon . ' ' . $toggletext . '</span>',
         ['class' => 'btn mb-3 ' . $toggleclass,
          'style' => 'font-weight:600;',
-         'title' => get_string('setting_autoreminder_enabled_desc', 'block_scormreport')]);
+        'title' => get_string(
+            'setting_autoreminder_enabled_desc',
+            'block_scormreport'
+        )]
+    );
 }
 
 // Link to Training Compliance dashboard (managers/supervisors only)
 if (has_capability('block/scormreport:viewcompliance', context_system::instance())) {
     $complianceurl = new moodle_url('/blocks/scormreport/compliance.php');
-    $compicon = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-3px;"><path d="M3 3v18h18"/><rect x="7" y="12" width="3" height="6"/><rect x="12" y="8" width="3" height="10"/><rect x="17" y="4" width="3" height="14"/></svg>';
-    echo ' ' . html_writer::link($complianceurl,
+    $compicon = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" '
+        . 'stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-3px;"><path d="M3 3v18h18"/><rect x="7" '
+            . 'y="12" width="3" height="6"/><rect x="12" y="8" width="3" height="10"/><rect x="17" y="4" width="3" height="14"/></svg>';
+    echo ' ' . html_writer::link(
+        $complianceurl,
         '<span style="display:inline-flex;align-items:center;gap:7px;">' . $compicon . ' ' . get_string('compliancelink', 'block_scormreport') . '</span>',
-        ['class' => 'btn mb-3 btn-outline-info', 'style' => 'font-weight:600;']);
+        ['class' => 'btn mb-3 btn-outline-info', 'style' => 'font-weight:600;']
+    );
 }
 
 // Tutor activity: tutors of the course with their connection activity.
 if (!$isdetail) {
     $tutorsurl = new moodle_url('/blocks/scormreport/tutors.php', ['courseid' => $courseid]);
-    $tutoricon = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-3px;"><circle cx="12" cy="7" r="4"/><path d="M4 21v-2a6 6 0 0 1 6-6h4a6 6 0 0 1 6 6v2"/></svg>';
-    echo ' ' . html_writer::link($tutorsurl,
+    $tutoricon = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" '
+        . 'stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-3px;"><circle cx="12" cy="7" r="4"/><path d="M4 21v-2a6 6 0 0 1 6-6h4a6 6 0 0 1 6 6v2"/></svg>';
+    echo ' ' . html_writer::link(
+        $tutorsurl,
         '<span style="display:inline-flex;align-items:center;gap:7px;">' . $tutoricon . ' '
             . get_string('tutoractivity', 'block_scormreport') . '</span>',
-        ['class' => 'btn mb-3', 'style' => 'background:#6f42c1;border-color:#6f42c1;color:#fff;font-weight:600;']);
+        ['class' => 'btn mb-3', 'style' => 'background:#6f42c1;border-color:#6f42c1;color:#fff;font-weight:600;']
+    );
 }
 
 if ($isdetail) {
@@ -760,7 +816,9 @@ if (!$isdetail) {
         echo '<div class="scorm-bars-wrap mb-3">';
         echo '<h6 class="chart-toggle" role="button" tabindex="0" data-target="progress-chart" aria-expanded="false" style="display:inline-flex;align-items:center;gap:8px;">'
             . '<span class="chart-toggle-arrow" style="color:#0073aa;font-size:0.9rem;transition:transform 0.2s;">▸</span>'
-            . '<span style="display:inline-flex;align-items:center;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#0073aa" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 17l6-6 4 4 8-8"/><path d="M17 7h4v4"/></svg></span> ' . get_string('progressbystudent', 'block_scormreport') . '</h6>';
+            . '<span style="display:inline-flex;align-items:center;"><svg width="18" height="18" viewBox="0 0 24 24" '
+                . 'fill="none" stroke="#0073aa" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 '
+                    . '17l6-6 4 4 8-8"/><path d="M17 7h4v4"/></svg></span> ' . get_string('progressbystudent', 'block_scormreport') . '</h6>';
         echo '<div id="progress-chart" style="display:none;">';
         foreach ($globaldata as $grow) {
             $pspct = (float)rtrim($grow['pctsuperados'], '%');
@@ -779,7 +837,7 @@ if (!$isdetail) {
 
         // Put multi-word column titles on two lines. A leading "% " stays with
         // the next word; otherwise split at the first space.
-        $hdr = function($key) {
+        $hdr = function ($key) {
             $txt = get_string($key, 'block_scormreport');
             if (strpos($txt, '% ') === 0) {
                 // "% Temas superados" -> "% Temas<br>superados"
@@ -798,21 +856,21 @@ if (!$isdetail) {
         <table class="table table-striped table-hover scorm-report-table sortable-table" id="global-table">
             <thead><tr>
                 <th class="sortable-col" role="button" tabindex="0" data-col="0">' . $hdr('student')      . $sorticon . '</th>'
-                . ($showcol('username')       ? '<th class="sortable-col" role="button" tabindex="0">' . $hdr('username')     . $sorticon . '</th>' : '')
-                . ($showcol('email')          ? '<th class="sortable-col" role="button" tabindex="0">' . $hdr('email')        . $sorticon . '</th>' : '')
-                . ($showcol('dni')            ? '<th class="sortable-col" role="button" tabindex="0">' . $hdr('dni')          . $sorticon . '</th>' : '')
-                . ($showcol('company')        ? '<th class="sortable-col" role="button" tabindex="0">' . $hdr('company')      . $sorticon . '</th>' : '')
-                . ($showcol('timescorm')      ? '<th class="sortable-col" role="button" tabindex="0">' . $hdr('timescorm')    . $sorticon . '</th>' : '')
-                . ($showcol('pcttimecourse')  ? '<th class="sortable-col" role="button" tabindex="0">' . $hdr('pcttimecourse') . $sorticon . '</th>' : '')
-                . ($showcol('score')          ? '<th class="sortable-col" role="button" tabindex="0">' . $hdr('score')        . $sorticon . '</th>' : '')
+                . ($showcol('username') ? '<th class="sortable-col" role="button" tabindex="0">' . $hdr('username')     . $sorticon . '</th>' : '')
+                . ($showcol('email') ? '<th class="sortable-col" role="button" tabindex="0">' . $hdr('email')        . $sorticon . '</th>' : '')
+                . ($showcol('dni') ? '<th class="sortable-col" role="button" tabindex="0">' . $hdr('dni')          . $sorticon . '</th>' : '')
+                . ($showcol('company') ? '<th class="sortable-col" role="button" tabindex="0">' . $hdr('company')      . $sorticon . '</th>' : '')
+                . ($showcol('timescorm') ? '<th class="sortable-col" role="button" tabindex="0">' . $hdr('timescorm')    . $sorticon . '</th>' : '')
+                . ($showcol('pcttimecourse') ? '<th class="sortable-col" role="button" tabindex="0">' . $hdr('pcttimecourse') . $sorticon . '</th>' : '')
+                . ($showcol('score') ? '<th class="sortable-col" role="button" tabindex="0">' . $hdr('score')        . $sorticon . '</th>' : '')
                 . '<th>' . $hdr('topicscolumn') . '</th>'
-                . ($showcol('pctvistos')      ? '<th class="sortable-col" role="button" tabindex="0">' . $hdr('pctvistos')    . $sorticon . '</th>' : '')
-                . ($showcol('pctsuperados')   ? '<th class="sortable-col" role="button" tabindex="0">' . $hdr('pctsuperados') . $sorticon . '</th>' : '')
-                . ($showcol('seen')           ? '<th class="sortable-col" role="button" tabindex="0">' . $hdr('topicsseen')   . $sorticon . '</th>' : '')
-                . ($showcol('passed')         ? '<th class="sortable-col" role="button" tabindex="0">' . $hdr('topicspassed') . $sorticon . '</th>' : '')
+                . ($showcol('pctvistos') ? '<th class="sortable-col" role="button" tabindex="0">' . $hdr('pctvistos')    . $sorticon . '</th>' : '')
+                . ($showcol('pctsuperados') ? '<th class="sortable-col" role="button" tabindex="0">' . $hdr('pctsuperados') . $sorticon . '</th>' : '')
+                . ($showcol('seen') ? '<th class="sortable-col" role="button" tabindex="0">' . $hdr('topicsseen')   . $sorticon . '</th>' : '')
+                . ($showcol('passed') ? '<th class="sortable-col" role="button" tabindex="0">' . $hdr('topicspassed') . $sorticon . '</th>' : '')
                 . ($showcol('attempts_total') ? '<th class="sortable-col" role="button" tabindex="0">' . $hdr('attemptstotal') . $sorticon . '</th>' : '')
-                . ($showcol('firstaccess')    ? '<th class="sortable-col" role="button" tabindex="0">' . $hdr('firstaccess')  . $sorticon . '</th>' : '')
-                . ($showcol('lastaccess')     ? '<th class="sortable-col" role="button" tabindex="0">' . $hdr('lastaccess')   . $sorticon . '</th>' : '')
+                . ($showcol('firstaccess') ? '<th class="sortable-col" role="button" tabindex="0">' . $hdr('firstaccess')  . $sorticon . '</th>' : '')
+                . ($showcol('lastaccess') ? '<th class="sortable-col" role="button" tabindex="0">' . $hdr('lastaccess')   . $sorticon . '</th>' : '')
                 . ($showcol('progresscolumn') ? '<th>' . $hdr('progresscolumn') . '</th>' : '')
                 . ($showcol('deadlinestatus') ? '<th>' . $hdr('deadlinestatus') . '</th>' : '')
                 . '<th>' . $hdr('fullreport')   . '</th>'
@@ -842,25 +900,27 @@ if (!$isdetail) {
                 data-pctsuperados="' . $pspct . '"
                 data-score="' . $rowscore . '">
                 <td>'                         . htmlspecialchars($row['studentname'])  . '</td>'
-                . ($showcol('username')      ? '<td>' . htmlspecialchars($row['username'] ?? '') . '</td>' : '')
-                . ($showcol('email')         ? '<td>' . htmlspecialchars($row['email'] ?? '') . '</td>' : '')
-                . ($showcol('dni')           ? '<td>' . (!empty($row['dni']) ? htmlspecialchars($row['dni']) : '-') . '</td>' : '')
-                . ($showcol('company')       ? '<td' . (!empty($row['company']) ? ' title="' . htmlspecialchars($row['company'], ENT_QUOTES) . '"' : '') . '>' . (!empty($row['company']) ? htmlspecialchars($companyshort($row['company'])) : '-') . '</td>' : '')
-                . ($showcol('timescorm')     ? '<td class="text-center font-monospace" data-sort="' . $row['totalseconds'] . '">' . $row['timescorm'] . '</td>' : '')
+                . ($showcol('username') ? '<td>' . htmlspecialchars($row['username'] ?? '') . '</td>' : '')
+                . ($showcol('email') ? '<td>' . htmlspecialchars($row['email'] ?? '') . '</td>' : '')
+                . ($showcol('dni') ? '<td>' . (!empty($row['dni']) ? htmlspecialchars($row['dni']) : '-') . '</td>' : '')
+                . ($showcol('company') ? '<td' . (!empty($row['company']) ? ' title="'
+                    . htmlspecialchars($row['company'], ENT_QUOTES) . '"' : '') . '>'
+                        . (!empty($row['company']) ? htmlspecialchars($companyshort($row['company'])) : '-') . '</td>' : '')
+                . ($showcol('timescorm') ? '<td class="text-center font-monospace" data-sort="' . $row['totalseconds'] . '">' . $row['timescorm'] . '</td>' : '')
                 . ($showcol('pcttimecourse') ? '<td class="text-center">' . $row['pcttotal'] . '</td>' : '')
-                . ($showcol('score')         ? '<td class="text-center"><strong>' . $row['score'] . '</strong></td>' : '')
+                . ($showcol('score') ? '<td class="text-center"><strong>' . $row['score'] . '</strong></td>' : '')
                 . '<td>' . $topiccell . '</td>'
-                . ($showcol('pctvistos')     ? '<td class="text-center">' . ($row['pctvistos'] ?? '-') . '</td>' : '')
-                . ($showcol('pctsuperados')  ? '<td class="text-center">
+                . ($showcol('pctvistos') ? '<td class="text-center">' . ($row['pctvistos'] ?? '-') . '</td>' : '')
+                . ($showcol('pctsuperados') ? '<td class="text-center">
                     <div class="progress-wrap">
                         <div class="progress-bar-custom bar-green" style="width:' . $ps . '%"></div>
                         <span>' . $row['pctsuperados'] . '</span>
                     </div></td>' : '')
-                . ($showcol('seen')          ? '<td class="text-center">' . ($row['seen'] ?? 0) . '</td>' : '')
-                . ($showcol('passed')        ? '<td class="text-center">' . ($row['passed'] ?? 0) . '</td>' : '')
+                . ($showcol('seen') ? '<td class="text-center">' . ($row['seen'] ?? 0) . '</td>' : '')
+                . ($showcol('passed') ? '<td class="text-center">' . ($row['passed'] ?? 0) . '</td>' : '')
                 . ($showcol('attempts_total') ? '<td class="text-center">' . ($row['attempts_total'] ?? 0) . '</td>' : '')
-                . ($showcol('firstaccess')   ? '<td data-sort="' . ($row['firstaccess_ts'] ?? 0) . '">' . $row['firstaccess'] . '</td>' : '')
-                . ($showcol('lastaccess')    ? '<td data-sort="' . ($row['lastaccess_ts'] ?? 0) . '">' . $row['lastaccess']  . '</td>' : '')
+                . ($showcol('firstaccess') ? '<td data-sort="' . ($row['firstaccess_ts'] ?? 0) . '">' . $row['firstaccess'] . '</td>' : '')
+                . ($showcol('lastaccess') ? '<td data-sort="' . ($row['lastaccess_ts'] ?? 0) . '">' . $row['lastaccess']  . '</td>' : '')
                 . ($showcol('progresscolumn') ? '<td class="text-center">'
                     . ($pspct >= $aptthreshold
                         ? '<span class="badge badge-success badge-apt">▲ ' . $progressoklabel . '</span>'
@@ -876,8 +936,11 @@ if (!$isdetail) {
                     </td>';
             }
 
-            $iconreport = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/><path d="M9 13h6M9 17h4"/></svg>';
-            $iconlog = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;"><path d="M3 3v18h18"/><path d="M7 14l3-3 3 3 4-5"/></svg>';
+            $iconreport = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" '
+                . 'stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;"><path d="M14 '
+                    . '2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/><path d="M9 13h6M9 17h4"/></svg>';
+            $iconlog = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" '
+                . 'stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;"><path d="M3 3v18h18"/><path d="M7 14l3-3 3 3 4-5"/></svg>';
             echo '<td class="text-center">
                     <a href="' . $row['fullreport'] . '" target="_blank" class="btn btn-xs btn-outline-primary">
                         ' . $iconreport . ' ' . get_string('fullreport', 'block_scormreport') . '
@@ -889,8 +952,10 @@ if (!$isdetail) {
                 ';
             // Compliance evidence button (per-student report)
             if ($canexport && $showcol('evidencebutton')) {
-                $evidenceurl = new moodle_url('/blocks/scormreport/generate_evidence_pdf.php',
-                    ['courseid' => $courseid, 'userid' => $row['userid']]);
+                $evidenceurl = new moodle_url(
+                    '/blocks/scormreport/generate_evidence_pdf.php',
+                    ['courseid' => $courseid, 'userid' => $row['userid']]
+                );
                 $evhref  = $evidenceurl->out(false);
                 $evclass = 'btn btn-xs btn-outline-info';
                 $evtarget = ' target="_blank"';
@@ -901,8 +966,10 @@ if (!$isdetail) {
             }
             // Connections report button (per-student daily connection PDF).
             if ($canexport && $showcol('connections')) {
-                $connurl = new moodle_url('/blocks/scormreport/generate_connections_pdf.php',
-                    ['courseid' => $courseid, 'userid' => $row['userid']]);
+                $connurl = new moodle_url(
+                    '/blocks/scormreport/generate_connections_pdf.php',
+                    ['courseid' => $courseid, 'userid' => $row['userid']]
+                );
                 $connhref   = $connurl->out(false);
                 $connclass  = 'btn btn-xs btn-outline-secondary';
                 $conntarget = ' target="_blank"';
@@ -928,14 +995,24 @@ if (!$isdetail) {
             // ── Expandable row: detail per SCORM ────────────────────────
             // Fixed columns: student, topics, fullreport, logentries = 4.
             $numcols = 4;
-            foreach (['username','email','dni','company','timescorm','pcttimecourse',
-                      'score','pctvistos','pctsuperados','seen','passed','attempts_total',
-                      'firstaccess','lastaccess','progresscolumn','deadlinestatus'] as $oc) {
-                if ($showcol($oc)) $numcols++;
+            foreach (
+                ['username', 'email', 'dni', 'company', 'timescorm', 'pcttimecourse',
+                      'score', 'pctvistos', 'pctsuperados', 'seen', 'passed', 'attempts_total',
+                      'firstaccess', 'lastaccess', 'progresscolumn', 'deadlinestatus'] as $oc
+            ) {
+                if ($showcol($oc)) {
+                    $numcols++;
+                }
             }
-            if ($canexport && $showcol('evidencebutton')) $numcols++;
-            if ($canexport && $showcol('connections')) $numcols++;
-            if ($hasdiploma && $showcol('diploma')) $numcols++;
+            if ($canexport && $showcol('evidencebutton')) {
+                $numcols++;
+            }
+            if ($canexport && $showcol('connections')) {
+                $numcols++;
+            }
+            if ($hasdiploma && $showcol('diploma')) {
+                $numcols++;
+            }
             echo '<tr class="sco-detail-row" id="scorm-detail-' . $growindex . '" style="display:none;">
                 <td colspan="' . $numcols . '" class="sco-detail-cell">
                 <table class="table table-sm mb-0 sco-inner-table">
@@ -1053,14 +1130,22 @@ if ($isdetail) {
         <div class="table-responsive">
         <table class="table table-striped table-hover scorm-report-table sortable-table" id="detail-table">
             <thead><tr>
-                <th class="sortable-col" role="button" tabindex="0" data-col="0">' . get_string('student',     'block_scormreport') . ' <span class="sort-icon" aria-hidden="true">↕</span></th>
-                <th class="sortable-col" role="button" tabindex="0" data-col="1">' . get_string('company',     'block_scormreport') . ' <span class="sort-icon" aria-hidden="true">↕</span></th>
-                <th class="sortable-col" role="button" tabindex="0" data-col="2">' . get_string('scormname',   'block_scormreport') . ' <span class="sort-icon" aria-hidden="true">↕</span></th>
-                <th class="sortable-col" role="button" tabindex="0" data-col="3">' . get_string('timescorm',   'block_scormreport') . ' <span class="sort-icon" aria-hidden="true">↕</span></th>
-                <th class="sortable-col" role="button" tabindex="0" data-col="4">' . get_string('score',       'block_scormreport') . ' <span class="sort-icon" aria-hidden="true">↕</span></th>
-                <th class="sortable-col" role="button" tabindex="0" data-col="5">' . get_string('status',      'block_scormreport') . ' <span class="sort-icon" aria-hidden="true">↕</span></th>
-                <th class="sortable-col" role="button" tabindex="0" data-col="6">' . get_string('firstaccess', 'block_scormreport') . ' <span class="sort-icon" aria-hidden="true">↕</span></th>
-                <th class="sortable-col" role="button" tabindex="0" data-col="7">' . get_string('lastaccess',  'block_scormreport') . ' <span class="sort-icon" aria-hidden="true">↕</span></th>
+                <th class="sortable-col" role="button" tabindex="0" data-col="0">' . get_string('student', 'block_scormreport')
+                    . ' <span class="sort-icon" aria-hidden="true">↕</span></th>
+                <th class="sortable-col" role="button" tabindex="0" data-col="1">' . get_string('company', 'block_scormreport')
+                    . ' <span class="sort-icon" aria-hidden="true">↕</span></th>
+                <th class="sortable-col" role="button" tabindex="0" data-col="2">' . get_string('scormname', 'block_scormreport')
+                    . ' <span class="sort-icon" aria-hidden="true">↕</span></th>
+                <th class="sortable-col" role="button" tabindex="0" data-col="3">' . get_string('timescorm', 'block_scormreport')
+                    . ' <span class="sort-icon" aria-hidden="true">↕</span></th>
+                <th class="sortable-col" role="button" tabindex="0" data-col="4">' . get_string('score', 'block_scormreport')
+                    . ' <span class="sort-icon" aria-hidden="true">↕</span></th>
+                <th class="sortable-col" role="button" tabindex="0" data-col="5">' . get_string('status', 'block_scormreport')
+                    . ' <span class="sort-icon" aria-hidden="true">↕</span></th>
+                <th class="sortable-col" role="button" tabindex="0" data-col="6">'
+                    . get_string('firstaccess', 'block_scormreport') . ' <span class="sort-icon" aria-hidden="true">↕</span></th>
+                <th class="sortable-col" role="button" tabindex="0" data-col="7">' . get_string('lastaccess', 'block_scormreport')
+                    . ' <span class="sort-icon" aria-hidden="true">↕</span></th>
             </tr></thead>
             <tbody>';
 
@@ -1081,11 +1166,20 @@ if ($isdetail) {
             }
 
             $rowclass2 = '';
-            switch(strtolower($row['status'])) {
-                case 'passed': case 'completed': $rowclass2 = 'row-passed'; break;
-                case 'failed':                   $rowclass2 = 'row-failed'; break;
-                case 'incomplete':               $rowclass2 = 'row-incomplete'; break;
-                default:                         $rowclass2 = 'row-notattempted'; break;
+            switch (strtolower($row['status'])) {
+                case 'passed':
+                case 'completed':
+                    $rowclass2 = 'row-passed';
+                    break;
+                case 'failed':
+                    $rowclass2 = 'row-failed';
+                    break;
+                case 'incomplete':
+                    $rowclass2 = 'row-incomplete';
+                    break;
+                default:
+                    $rowclass2 = 'row-notattempted';
+                    break;
             }
             echo '<tr class="' . $rowclass2 . '">
                 <td>'                                    . htmlspecialchars($row['studentname']) . '</td>
@@ -1144,11 +1238,20 @@ $PAGE->requires->js_call_amd('block_scormreport/report', 'init', [$jsparams]);
 // Settings button at the very bottom (site admins only).
 if (is_siteadmin()) {
     $settingsurl = new moodle_url('/admin/settings.php', ['section' => 'blocksettingscormreport']);
-    $gearicon = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-3px;"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>';
+    $gearicon = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" '
+        . 'stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-3px;"><circle cx="12" cy="12" '
+            . 'r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 '
+                . '1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 '
+                    . '1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 '
+                        . '9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 '
+                            . '1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 '
+                                . '2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>';
     echo '<div style="margin-top:24px;padding-top:16px;border-top:1px solid #dee2e6;">'
-        . html_writer::link($settingsurl,
+        . html_writer::link(
+            $settingsurl,
             '<span style="display:inline-flex;align-items:center;gap:6px;">' . $gearicon . ' ' . get_string('gotosettings', 'block_scormreport') . '</span>',
-            ['class' => 'btn btn-outline-secondary'])
+            ['class' => 'btn btn-outline-secondary']
+        )
         . '</div>';
 }
 

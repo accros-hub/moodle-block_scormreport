@@ -28,6 +28,8 @@ namespace block_scormreport;
 
 defined('MOODLE_INTERNAL') || die();
 
+require_once(__DIR__ . '/fixtures/testable_license_v3.php');
+
 use PHPUnit\Framework\Attributes\Group;
 
 /**
@@ -35,7 +37,6 @@ use PHPUnit\Framework\Attributes\Group;
  */
 #[Group('block_scormreport')]
 final class license_v3_test extends \advanced_testcase {
-
     /** Site used in the fixtures (PHPUnit wwwroot is https://www.example.com/moodle). */
     private const SITE = 'www.example.com/moodle';
 
@@ -91,7 +92,10 @@ final class license_v3_test extends \advanced_testcase {
 
     public function test_token_is_rejected_with_another_key(): void {
         $this->assertFalse(testable_license_v3::verify_token_with_key(
-            $this->fixture('v3_valid_token.txt'), $this->fixture('test_public.pem'), self::SITE));
+            $this->fixture('v3_valid_token.txt'),
+            $this->fixture('test_public.pem'),
+            self::SITE
+        ));
     }
 
     public function test_site_normalisation_matches_server(): void {
@@ -117,14 +121,5 @@ final class license_v3_test extends \advanced_testcase {
         license::reset_caches();
         $this->assertFalse(license::is_valid());
         $this->assertFalse(license::course_allowed((object)['id' => 0, 'startdate' => time() - DAYSECS]));
-    }
-}
-
-/**
- * Exposes the protected verifier with a test key.
- */
-final class testable_license_v3 extends license {
-    public static function verify_token_with_key(string $token, string $publickey, string $site) {
-        return parent::verify_token($token, $publickey, $site);
     }
 }

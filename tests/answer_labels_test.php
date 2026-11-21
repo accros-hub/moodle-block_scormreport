@@ -8,11 +8,11 @@
 //
 // Moodle is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
 //
 // You should have received a copy of the GNU General Public License
-// along with Moodle. If not, see <http://www.gnu.org/licenses/>.
+// along with Moodle.  If not, see <https://www.gnu.org/licenses/>.
 
 namespace block_scormreport;
 
@@ -26,7 +26,6 @@ namespace block_scormreport;
  */
 #[\PHPUnit\Framework\Attributes\CoversClass(\block_scormreport\answer_labels::class)]
 final class answer_labels_test extends \basic_testcase {
-
     /**
      * The text of each item is read from an ActivePresenter presentation file.
      */

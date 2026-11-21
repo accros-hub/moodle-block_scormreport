@@ -13,6 +13,7 @@
 //
 // You should have received a copy of the GNU General Public License
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
+
 /**
  * Unit tests for block_scormreport helper functions.
  *
@@ -37,7 +38,6 @@ use PHPUnit\Framework\Attributes\Group;
 #[Group('block_scormreport')]
 #[CoversNothing]
 final class lib_report_test extends \advanced_testcase {
-
     /**
      * Test block_scormreport_is_passed — only 'passed' is truly passed.
      */
@@ -349,5 +349,4 @@ final class lib_report_test extends \advanced_testcase {
         $withduplicates = block_scormreport_get_connections($course->id, $studentids);
         $this->assertSame($data[$user->id], $withduplicates[$user->id]);
     }
-
 }

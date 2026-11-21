@@ -13,6 +13,7 @@
 //
 // You should have received a copy of the GNU General Public License
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
+
 /**
  * Send reminder to inactive students.
  *
@@ -25,10 +26,10 @@ require_once('../../config.php');
 require_once($CFG->libdir . '/messagelib.php');
 
 $courseid = required_param('courseid', PARAM_INT);
-$minpct   = optional_param('minpct',   0,   PARAM_INT);
-$action   = optional_param('action',  'preview', PARAM_ALPHA);
-$subject  = optional_param('subject',  '', PARAM_TEXT);
-$message  = optional_param('message',  '', PARAM_RAW);
+$minpct   = optional_param('minpct', 0, PARAM_INT);
+$action   = optional_param('action', 'preview', PARAM_ALPHA);
+$subject  = optional_param('subject', '', PARAM_TEXT);
+$message  = optional_param('message', '', PARAM_RAW);
 $defaultchannel = get_config('block_scormreport', 'default_channel') ?: 'internal';
 $channel  = optional_param('channel', $defaultchannel, PARAM_ALPHA);
 
@@ -57,7 +58,9 @@ $PAGE->set_course($course);
 $PAGE->set_title(get_string('sendremindertitle', 'block_scormreport', $course->fullname));
 $PAGE->set_heading($course->fullname);
 
-$str = function($key, $a = null) { return get_string($key, 'block_scormreport', $a); };
+$str = function ($key, $a = null) {
+    return get_string($key, 'block_scormreport', $a);
+};
 
 // ─── Data ────────────────────────────────────────────────────────────────────
 require_once($CFG->dirroot . '/blocks/scormreport/lib_report.php');
@@ -69,7 +72,7 @@ $globaldata = $reportdata['globaldata'];
 $inactive = [];
 $minpctselected = ($minpct > 0);
 if ($minpctselected) {
-    $inactive = array_filter($globaldata, function($row) use ($minpct) {
+    $inactive = array_filter($globaldata, function ($row) use ($minpct) {
         return (float)rtrim($row['pctsuperados'], '%') < $minpct;
     });
 }
@@ -98,91 +101,105 @@ if ($action === 'send') {
     require_sesskey();
 
     if (!empty($subject) && !empty($message) && !empty($inactive)) {
-    // Filter by checkbox-selected students
-    $selectedusers = optional_param_array('selected_users', [], PARAM_INT);
-    if (empty($selectedusers)) {
-        // No recipients selected — send nothing
-        $redirecturl = new moodle_url('/blocks/scormreport/send_reminder.php', [
+        // Filter by checkbox-selected students
+        $selectedusers = optional_param_array('selected_users', [], PARAM_INT);
+        if (empty($selectedusers)) {
+            // No recipients selected — send nothing
+            $redirecturl = new moodle_url('/blocks/scormreport/send_reminder.php', [
             'courseid' => $courseid, 'minpct' => $minpct,
-        ]);
-        \core\notification::warning(get_string('norecipients', 'block_scormreport'));
-        redirect($redirecturl);
-    }
-    $inactive = array_filter($inactive, function($row) use ($selectedusers) {
-        return in_array((int)$row['userid'], $selectedusers, true);
-    });
+            ]);
+            \core\notification::warning(get_string('norecipients', 'block_scormreport'));
+            redirect($redirecturl);
+        }
+        $inactive = array_filter($inactive, function ($row) use ($selectedusers) {
+            return in_array((int)$row['userid'], $selectedusers, true);
+        });
 
-    $from = $DB->get_record('user', ['id' => $USER->id]);
+        $from = $DB->get_record('user', ['id' => $USER->id]);
 
-    foreach ($inactive as $row) {
-        $touser = $DB->get_record('user', ['id' => $row['userid'], 'deleted' => 0, 'suspended' => 0]);
-        if (!$touser) continue;
-        // Only send to actively enrolled students.
-        if (!is_enrolled($context, $touser, '', true)) continue;
+        foreach ($inactive as $row) {
+            $touser = $DB->get_record('user', ['id' => $row['userid'], 'deleted' => 0, 'suspended' => 0]);
+            if (!$touser) {
+                continue;
+            }
+            // Only send to actively enrolled students.
+            if (!is_enrolled($context, $touser, '', true)) {
+                continue;
+            }
 
-        $alumnoname    = fullname($touser);
-        $cursofullname = $course->fullname;
-        $fechahoy      = userdate(time(), '%d/%m/%Y');
-        $pctvistosu   = $row['pctsuperados'];
+            $alumnoname    = fullname($touser);
+            $cursofullname = $course->fullname;
+            $fechahoy      = userdate(time(), '%d/%m/%Y');
+            $pctvistosu   = $row['pctsuperados'];
 
-        $personalmsg = $str('remindergreeting', $alumnoname) . "\n\n"
+            $personalmsg = $str('remindergreeting', $alumnoname) . "\n\n"
             . $message . "\n\n"
             . "---\n"
             . $str('remindercourse', $cursofullname) . "\n"
             . $str('reminderprogress', $pctvistosu) . "\n"
             . $str('reminderdate', $fechahoy) . "\n";
 
-        $personalsubj = $subject . " — " . $cursofullname;
+            $personalsubj = $subject . " — " . $cursofullname;
 
-        $ok = false;
-        $pctval = (float)rtrim($row['pctsuperados'] ?? '0', '%');
-        $now = time();
+            $ok = false;
+            $pctval = (float)rtrim($row['pctsuperados'] ?? '0', '%');
+            $now = time();
 
-        if ($channel === 'email' || $channel === 'both') {
-            $result = email_to_user(
-                $touser, $from, $personalsubj,
-                strip_tags($personalmsg),
-                nl2br(htmlspecialchars($personalmsg))
-            );
-            if ($result) { $sentemail++; $ok = true; }
-            else $errors++;
+            if ($channel === 'email' || $channel === 'both') {
+                $result = email_to_user(
+                    $touser,
+                    $from,
+                    $personalsubj,
+                    strip_tags($personalmsg),
+                    nl2br(htmlspecialchars($personalmsg))
+                );
+                if ($result) {
+                    $sentemail++;
+                    $ok = true;
+                } else {
+                    $errors++;
+                }
 
-            // Log email channel independently
-            $DB->insert_record('block_scormreport_notif', (object)[
-                'userid'      => $touser->id,
-                'courseid'    => $courseid,
-                'channel'     => 'email',
-                'reason'      => "manual reminder, minpct={$minpct}",
-                'progress'    => $pctval,
-                'threshold'   => $minpct,
-                'status'      => $result ? 'sent' : 'failed',
-                'senderid'    => $USER->id,
-                'timecreated' => $now,
-            ]);
-        }
+                // Log email channel independently
+                $DB->insert_record('block_scormreport_notif', (object)[
+                    'userid'      => $touser->id,
+                    'courseid'    => $courseid,
+                    'channel'     => 'email',
+                    'reason'      => "manual reminder, minpct={$minpct}",
+                    'progress'    => $pctval,
+                    'threshold'   => $minpct,
+                    'status'      => $result ? 'sent' : 'failed',
+                    'senderid'    => $USER->id,
+                    'timecreated' => $now,
+                ]);
+            }
 
-        if ($channel === 'internal' || $channel === 'both') {
-            $eventdata = new \core\message\message();
-            $eventdata->component         = 'block_scormreport';
-            $eventdata->name              = 'progressreminder';
-            $eventdata->userfrom          = $from;
-            $eventdata->userto            = $touser;
-            $eventdata->subject           = $personalsubj;
-            $eventdata->fullmessage       = strip_tags($personalmsg);
-            $eventdata->fullmessageformat = FORMAT_PLAIN;
-            $eventdata->fullmessagehtml   = nl2br(htmlspecialchars($personalmsg));
-            $eventdata->smallmessage      = $personalsubj;
-            $eventdata->notification      = 1;
-            $eventdata->courseid          = $courseid;
-            $eventdata->contexturl        = $CFG->wwwroot . '/course/view.php?id=' . $courseid;
-            $eventdata->contexturlname    = $course->fullname;
+            if ($channel === 'internal' || $channel === 'both') {
+                $eventdata = new \core\message\message();
+                $eventdata->component         = 'block_scormreport';
+                $eventdata->name              = 'progressreminder';
+                $eventdata->userfrom          = $from;
+                $eventdata->userto            = $touser;
+                $eventdata->subject           = $personalsubj;
+                $eventdata->fullmessage       = strip_tags($personalmsg);
+                $eventdata->fullmessageformat = FORMAT_PLAIN;
+                $eventdata->fullmessagehtml   = nl2br(htmlspecialchars($personalmsg));
+                $eventdata->smallmessage      = $personalsubj;
+                $eventdata->notification      = 1;
+                $eventdata->courseid          = $courseid;
+                $eventdata->contexturl        = $CFG->wwwroot . '/course/view.php?id=' . $courseid;
+                $eventdata->contexturlname    = $course->fullname;
 
-            $result = message_send($eventdata);
-            if ($result) { $sentinternal++; $ok = true; }
-            else $errors++;
+                $result = message_send($eventdata);
+                if ($result) {
+                    $sentinternal++;
+                    $ok = true;
+                } else {
+                    $errors++;
+                }
 
-            // Log internal channel independently
-            $DB->insert_record('block_scormreport_notif', (object)[
+                // Log internal channel independently
+                $DB->insert_record('block_scormreport_notif', (object)[
                 'userid'      => $touser->id,
                 'courseid'    => $courseid,
                 'channel'     => 'internal',
@@ -192,13 +209,13 @@ if ($action === 'send') {
                 'status'      => $result ? 'sent' : 'failed',
                 'senderid'    => $USER->id,
                 'timecreated' => $now,
-            ]);
-        }
+                ]);
+            }
 
-        if ($ok) {
-            $sentnames[] = fullname($touser);
+            if ($ok) {
+                $sentnames[] = fullname($touser);
+            }
         }
-    }
     } // end if
 
     // PRG: store notifications in session and redirect to avoid double send
@@ -235,11 +252,13 @@ foreach ([25, 50, 75, 100] as $pct) {
     $percentoptions[] = ['value' => $pct, 'label' => $pct . '%', 'selected' => $minpct === $pct];
 }
 $channeloptions = [];
-foreach ([
+foreach (
+    [
     'email' => ['channelemailonly', 'channelemaildesc'],
     'internal' => ['channelinternalonly', 'channelinternaldesc'],
     'both' => ['channelboth', 'channelbothdesc'],
-] as $value => $keys) {
+    ] as $value => $keys
+) {
     $channeloptions[] = [
         'value' => $value,
         'label' => $str($keys[0]),

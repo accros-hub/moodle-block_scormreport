@@ -8,11 +8,11 @@
 //
 // Moodle is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
 //
 // You should have received a copy of the GNU General Public License
-// along with Moodle. If not, see <http://www.gnu.org/licenses/>.
+// along with Moodle.  If not, see <https://www.gnu.org/licenses/>.
 
 /**
  * Tests for the license rule by course start date, using signed ACCROS3 tokens.
@@ -30,6 +30,8 @@ namespace block_scormreport;
 
 defined('MOODLE_INTERNAL') || die();
 
+require_once(__DIR__ . '/fixtures/testable_license_rule.php');
+
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Group;
 
@@ -39,7 +41,6 @@ use PHPUnit\Framework\Attributes\Group;
 #[Group('block_scormreport')]
 #[CoversClass(license::class)]
 final class license_course_rule_test extends \advanced_testcase {
-
     /** End date of the expired fixture token (2023-11-14). */
     private const EXPIRED_END = 1700000000;
 
@@ -184,19 +185,5 @@ final class license_course_rule_test extends \advanced_testcase {
         $this->set_state('', '', ['lic_testmode' => 1]);
         $this->assertTrue(testable_license_rule::is_valid());
         $this->assertTrue(testable_license_rule::course_allowed($this->course(time())));
-    }
-}
-
-/**
- * License class that verifies tokens with the test-only public key.
- */
-final class testable_license_rule extends license {
-    /**
-     * Test-only public key matching the fixtures.
-     *
-     * @return string
-     */
-    protected static function public_key(): string {
-        return trim(file_get_contents(__DIR__ . '/fixtures/test_v3_public.pem'));
     }
 }

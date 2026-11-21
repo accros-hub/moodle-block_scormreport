@@ -8,11 +8,11 @@
 //
 // Moodle is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
 //
 // You should have received a copy of the GNU General Public License
-// along with Moodle. If not, see <http://www.gnu.org/licenses/>.
+// along with Moodle.  If not, see <https://www.gnu.org/licenses/>.
 
 /**
  * Backup structure for SCORM Report notifications.
@@ -28,13 +28,17 @@ defined('MOODLE_INTERNAL') || die();
  * Defines the notification history backup structure.
  */
 class backup_scormreport_block_structure_step extends backup_block_structure_step {
-
+    /**
+     * Define the notification backup structure.
+     *
+     * @return backup_nested_element
+     */
     protected function define_structure() {
         $userinfo = $this->get_setting_value('users');
 
-        $notifications = new backup_nested_element('notifications', array('id'));
+        $notifications = new backup_nested_element('notifications', ['id']);
 
-        $notification = new backup_nested_element('notification', array('id'), array(
+        $notification = new backup_nested_element('notification', ['id'], [
             'userid',
             'channel',
             'reason',
@@ -43,16 +47,16 @@ class backup_scormreport_block_structure_step extends backup_block_structure_ste
             'status',
             'senderid',
             'timecreated',
-        ));
+        ]);
 
         $notifications->add_child($notification);
 
-        $notifications->set_source_array(array((object) array('id' => $this->task->get_blockid())));
+        $notifications->set_source_array([(object) ['id' => $this->task->get_blockid()]]);
 
         if ($userinfo) {
             $notification->set_source_table(
                 'block_scormreport_notif',
-                array('courseid' => backup::VAR_COURSEID)
+                ['courseid' => backup::VAR_COURSEID]
             );
         }
 

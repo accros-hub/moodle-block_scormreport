@@ -13,6 +13,7 @@
 //
 // You should have received a copy of the GNU General Public License
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
+
 /**
  * Add the scormreport block to all existing courses (opt-in, admin only).
  *
@@ -32,5 +33,9 @@ $task->set_custom_data((object)['offset' => 0]);
 \core\task\manager::queue_adhoc_task($task);
 
 $returnurl = new moodle_url('/admin/settings.php', ['section' => 'blocksettingscormreport']);
-redirect($returnurl, get_string('addtoall_queued', 'block_scormreport'), null,
-    \core\output\notification::NOTIFY_SUCCESS);
+redirect(
+    $returnurl,
+    get_string('addtoall_queued', 'block_scormreport'),
+    null,
+    \core\output\notification::NOTIFY_SUCCESS
+);

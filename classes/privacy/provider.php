@@ -13,6 +13,7 @@
 //
 // You should have received a copy of the GNU General Public License
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
+
 /**
  * Privacy provider for block_scormreport.
  *
@@ -34,12 +35,14 @@ use core_privacy\local\request\writer;
 use context;
 use context_course;
 
+/**
+ * Describes and manages personal data stored by the SCORM Report block.
+ */
 class provider implements
     \core_privacy\local\metadata\provider,
-    \core_privacy\local\request\plugin\provider,
     \core_privacy\local\request\core_userlist_provider,
+    \core_privacy\local\request\plugin\provider,
     \core_privacy\local\request\user_preference_provider {
-
     /**
      * Describe the personal data stored by this plugin.
      */
@@ -207,16 +210,24 @@ class provider implements
             return;
         }
 
-        list($insql, $params) = $DB->get_in_or_equal($userids, SQL_PARAMS_NAMED);
+        [$insql, $params] = $DB->get_in_or_equal($userids, SQL_PARAMS_NAMED);
         $params['courseid'] = $context->instanceid;
 
-        $DB->delete_records_select('block_scormreport_notif',
-            "courseid = :courseid AND userid $insql", $params);
+        $DB->delete_records_select(
+            'block_scormreport_notif',
+            "courseid = :courseid AND userid $insql",
+            $params
+        );
 
-        list($insql2, $params2) = $DB->get_in_or_equal($userids, SQL_PARAMS_NAMED);
+        [$insql2, $params2] = $DB->get_in_or_equal($userids, SQL_PARAMS_NAMED);
         $params2['courseid'] = $context->instanceid;
-        $DB->set_field_select('block_scormreport_notif', 'senderid', 0,
-            "courseid = :courseid AND senderid $insql2", $params2);
+        $DB->set_field_select(
+            'block_scormreport_notif',
+            'senderid',
+            0,
+            "courseid = :courseid AND senderid $insql2",
+            $params2
+        );
     }
 
     /**

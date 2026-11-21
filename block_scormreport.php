@@ -13,6 +13,7 @@
 //
 // You should have received a copy of the GNU General Public License
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
+
 /**
  * SCORM Report block - Sidebar block displaying SCORM course reports.
  * - Teacher/admin: link to the complete report for all students.
@@ -26,22 +27,42 @@
 
 defined('MOODLE_INTERNAL') || die();
 
+/**
+ * Course block that links to SCORM progress reports.
+ */
 class block_scormreport extends block_base {
-
+    /**
+     * Set the block title.
+     */
     public function init() {
         $this->title = get_string('pluginname', 'block_scormreport');
     }
 
+    /**
+     * Restrict the block to course pages.
+     *
+     * @return array
+     */
     public function applicable_formats() {
         return ['course-view' => true];
     }
 
+    /**
+     * Indicate whether the plugin exposes configuration.
+     *
+     * @return bool
+     */
     public function has_config() {
         return true;
     }
 
+    /**
+     * Build the block content for the current course.
+     *
+     * @return stdClass
+     */
     public function get_content() {
-        global $COURSE, $USER, $CFG, $PAGE;
+        global $COURSE, $USER, $CFG;
 
         if ($this->content !== null) {
             return $this->content;
@@ -54,8 +75,10 @@ class block_scormreport extends block_base {
 
         // Teacher/admin view
         if (has_capability('block/scormreport:viewreports', $context)) {
-            $reporturl = new moodle_url('/blocks/scormreport/report.php',
-                ['courseid' => $COURSE->id]);
+            $reporturl = new moodle_url(
+                '/blocks/scormreport/report.php',
+                ['courseid' => $COURSE->id]
+            );
 
             $this->content->text = html_writer::div(
                 html_writer::tag('p', get_string('reportdesc', 'block_scormreport')) .
@@ -71,10 +94,14 @@ class block_scormreport extends block_base {
 
         // Student view. Hidden when the license does not cover this course: students cannot
         // do anything about it and the locked page is meant for teachers and administrators.
-        if (has_capability('block/scormreport:viewownreport', $context)
-                && \block_scormreport\license::course_allowed($COURSE)) {
-            $studenturl = new moodle_url('/blocks/scormreport/student.php',
-                ['courseid' => $COURSE->id]);
+        if (
+            has_capability('block/scormreport:viewownreport', $context)
+                && \block_scormreport\license::course_allowed($COURSE)
+        ) {
+            $studenturl = new moodle_url(
+                '/blocks/scormreport/student.php',
+                ['courseid' => $COURSE->id]
+            );
 
             $this->content->text = html_writer::div(
                 html_writer::tag('p', get_string('studentreportdesc', 'block_scormreport')) .

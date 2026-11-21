@@ -13,6 +13,7 @@
 //
 // You should have received a copy of the GNU General Public License
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
+
 /**
  * Training Compliance Dashboard — overview of all courses with scormreport.
  *
@@ -40,7 +41,9 @@ if (!in_array($filter, ['active', 'recent', 'all'])) {
     $filter = 'recent';
 }
 
-$str = function($key, $a = null) { return get_string($key, 'block_scormreport', $a); };
+$str = function ($key, $a = null) {
+    return get_string($key, 'block_scormreport', $a);
+};
 $aptthreshold = get_config('block_scormreport', 'apt_threshold');
 $aptthreshold = ($aptthreshold === false || $aptthreshold === '') ? 75 : (int)$aptthreshold;
 $aptthreshold = max(0, min(100, $aptthreshold));
@@ -84,10 +87,17 @@ if (!$seesall) {
 
     // Does the user hold any "see all" role anywhere at system level?
     if (!empty($rolesall)) {
-        $sysroles = $DB->get_fieldset_select('role_assignments', 'roleid',
-            'userid = :uid', ['uid' => $USER->id]);
+        $sysroles = $DB->get_fieldset_select(
+            'role_assignments',
+            'roleid',
+            'userid = :uid',
+            ['uid' => $USER->id]
+        );
         foreach ($rolesall as $rid) {
-            if (in_array($rid, $sysroles)) { $seesall = true; break; }
+            if (in_array($rid, $sysroles)) {
+                $seesall = true;
+                break;
+            }
         }
     }
 
@@ -95,7 +105,7 @@ if (!$seesall) {
         // Collect courses where the user is enrolled with any "see own" role.
         $owncourseids = [];
         if (!empty($rolesown)) {
-            list($rinsql, $rparams) = $DB->get_in_or_equal($rolesown, SQL_PARAMS_NAMED, 'r');
+            [$rinsql, $rparams] = $DB->get_in_or_equal($rolesown, SQL_PARAMS_NAMED, 'r');
             $rparams['uid'] = $USER->id;
             $rows = $DB->get_records_sql(
                 "SELECT DISTINCT ctx.instanceid AS courseid
@@ -117,7 +127,7 @@ if (!$seesall) {
 
 // Apply role restriction to the WHERE clause.
 if (!$seesall && $owncourseids !== null) {
-    list($cinsql, $cparams) = $DB->get_in_or_equal($owncourseids, SQL_PARAMS_NAMED, 'oc');
+    [$cinsql, $cparams] = $DB->get_in_or_equal($owncourseids, SQL_PARAMS_NAMED, 'oc');
     $where .= " AND c.id $cinsql";
     $params = array_merge($params, $cparams);
 }
@@ -153,7 +163,9 @@ foreach ($courses as $c) {
         continue;
     }
     $cctx = context_course::instance($c->id, IGNORE_MISSING);
-    if (!$cctx) continue;
+    if (!$cctx) {
+        continue;
+    }
 
     try {
         $rd = block_scormreport_get_data($c->id, 0, 0, $cctx, $c, $DB, $CFG);
@@ -162,12 +174,17 @@ foreach ($courses as $c) {
     }
 
     $numstudents = count($rd['students']);
-    if ($numstudents === 0) continue;
+    if ($numstudents === 0) {
+        continue;
+    }
 
-    $apto = 0; $noapto = 0; $risk = 0; $noactivity = 0;
+    $apto = 0;
+    $noapto = 0;
+    $risk = 0;
+    $noactivity = 0;
     $deadlinetolerance = get_config('block_scormreport', 'deadline_tolerance');
-$deadlinetolerance = ($deadlinetolerance === false || $deadlinetolerance === '') ? 15 : (int)$deadlinetolerance;
-$deadlinetolerance = max(0, min(100, $deadlinetolerance));
+    $deadlinetolerance = ($deadlinetolerance === false || $deadlinetolerance === '') ? 15 : (int)$deadlinetolerance;
+    $deadlinetolerance = max(0, min(100, $deadlinetolerance));
 
     foreach ($rd['globaldata'] as $row) {
         $pct = (float)rtrim($row['pctsuperados'], '%');
@@ -250,10 +267,12 @@ foreach ($stats as $item) {
     $alerts[] = ['coursename' => $item['coursename'], 'description' => implode(', ', $parts)];
 }
 $headers = [];
-foreach ([
+foreach (
+    [
     'coursename_label', 'coursedates_label', 'totalstudents', 'apt', 'notapt',
     'apt', 'studentsatrisk', 'noactivitylabel', 'actions',
-] as $index => $key) {
+    ] as $index => $key
+) {
     $headers[] = [
         'label' => $index === 5 ? '% ' . $str($key) : $str($key),
         'class' => $index === 0 ? '' : 'text-center',
@@ -261,8 +280,10 @@ foreach ([
 }
 $courses = [];
 foreach ($stats as $item) {
-    $item['reporturl'] = (new moodle_url('/blocks/scormreport/report.php',
-        ['courseid' => $item['courseid']]))->out(false);
+    $item['reporturl'] = (new moodle_url(
+        '/blocks/scormreport/report.php',
+        ['courseid' => $item['courseid']]
+    ))->out(false);
     $item['pctcolor'] = $item['pctapto'] >= 80 ? '#28a745'
         : ($item['pctapto'] >= 50 ? '#ffc107' : '#dc3545');
     $item['riskclass'] = $item['risk'] > 0 ? 'badge-danger' : 'badge-success';

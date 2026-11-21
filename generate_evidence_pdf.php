@@ -13,6 +13,7 @@
 //
 // You should have received a copy of the GNU General Public License
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
+
 /**
  * Generate Training Compliance evidence PDF for a student.
  *
@@ -45,7 +46,9 @@ if (!is_enrolled($context, $targetuser, '', false)) {
 $aptthreshold = get_config('block_scormreport', 'apt_threshold');
 $aptthreshold = ($aptthreshold === false || $aptthreshold === '') ? 75 : (int)$aptthreshold;
 $aptthreshold = max(0, min(100, $aptthreshold));
-$str = function($key, $a = null) { return get_string($key, 'block_scormreport', $a); };
+$str = function ($key, $a = null) {
+    return get_string($key, 'block_scormreport', $a);
+};
 
 // Get report data
 $reportdata = block_scormreport_get_data($courseid, $userid, 0, $context, $course, $DB, $CFG);
@@ -144,7 +147,9 @@ function block_scormreport_draw_wrapped_row($pdf, array $cells, bool $fill = fal
     $maxh = $minh;
     foreach ($cells as $c) {
         $h = $pdf->getStringHeight($c['w'], (string)$c['text']);
-        if ($h > $maxh) $maxh = $h;
+        if ($h > $maxh) {
+            $maxh = $h;
+        }
     }
     // Page break if needed.
     if ($pdf->GetY() + $maxh > $pdf->getPageHeight() - 20) {
@@ -240,7 +245,9 @@ foreach ($cfields as $f) {
 $pdf->Ln(5);
 
 // ── Section 3: Topic breakdown ──
-if ($pdf->GetY() > 200) { $pdf->AddPage(); }
+if ($pdf->GetY() > 200) {
+    $pdf->AddPage();
+}
 
 $pdf->SetFont('helvetica', 'B', 12);
 $pdf->SetFillColor(0, 73, 110);
@@ -261,12 +268,12 @@ $userdetails = !empty($studentdata['scormdetails']) ? $studentdata['scormdetails
 foreach ($userdetails as $sd) {
     $badgeinfo = block_scormreport_get_badge_info($sd['status']);
     $rowcells = [
-        ['w' => $cols[0], 'text' => $sd['scormname'],   'align' => 'L'],
-        ['w' => $cols[1], 'text' => $sd['timescorm'],   'align' => 'C'],
-        ['w' => $cols[2], 'text' => $sd['score'],       'align' => 'C'],
-        ['w' => $cols[3], 'text' => $badgeinfo['label'],'align' => 'C'],
+        ['w' => $cols[0], 'text' => $sd['scormname'], 'align' => 'L'],
+        ['w' => $cols[1], 'text' => $sd['timescorm'], 'align' => 'C'],
+        ['w' => $cols[2], 'text' => $sd['score'], 'align' => 'C'],
+        ['w' => $cols[3], 'text' => $badgeinfo['label'], 'align' => 'C'],
         ['w' => $cols[4], 'text' => $sd['firstaccess'], 'align' => 'C'],
-        ['w' => $cols[5], 'text' => $sd['lastaccess'],  'align' => 'C'],
+        ['w' => $cols[5], 'text' => $sd['lastaccess'], 'align' => 'C'],
     ];
     $pdf->SetFillColor($fill ? 245 : 255, $fill ? 248 : 255, $fill ? 252 : 255);
     if (!block_scormreport_draw_wrapped_row($pdf, $rowcells, $fill)) {
@@ -283,10 +290,15 @@ $pdf->Ln(5);
 // ── Section 3b: Evaluation detail (test interactions) ──
 $hasany = false;
 foreach ($userdetails as $sd) {
-    if (!empty($sd['interactions'])) { $hasany = true; break; }
+    if (!empty($sd['interactions'])) {
+        $hasany = true;
+        break;
+    }
 }
 if ($hasany) {
-    if ($pdf->GetY() > 200) { $pdf->AddPage(); }
+    if ($pdf->GetY() > 200) {
+        $pdf->AddPage();
+    }
     $pdf->SetFont('helvetica', 'B', 12);
     $pdf->SetFillColor(0, 73, 110);
     $pdf->SetTextColor(255, 255, 255);
@@ -295,7 +307,9 @@ if ($hasany) {
     $pdf->Ln(3);
 
     foreach ($userdetails as $sd) {
-        if (empty($sd['interactions'])) continue;
+        if (empty($sd['interactions'])) {
+            continue;
+        }
 
         // SCORM name subheading.
         $pdf->SetFont('helvetica', 'B', 9);
@@ -339,7 +353,9 @@ if ($hasany) {
 }
 
 // ── Section 4: Signature ──
-if ($pdf->GetY() > 240) { $pdf->AddPage(); }
+if ($pdf->GetY() > 240) {
+    $pdf->AddPage();
+}
 
 $pdf->SetFont('helvetica', 'B', 12);
 $pdf->SetFillColor(0, 73, 110);

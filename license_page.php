@@ -151,7 +151,8 @@ $hidden = html_writer::empty_tag('input', ['type' => 'hidden', 'name' => 'sesske
 $card = function (string $title, string $body) {
     return html_writer::div(
         html_writer::div(html_writer::tag('h4', $title, ['class' => 'card-title h5']) . $body, 'card-body'),
-        'card mb-3', ['style' => 'max-width:720px']
+        'card mb-3',
+        ['style' => 'max-width:720px']
     );
 };
 
@@ -192,11 +193,16 @@ if ($hastoken || license::refresh_possible()) {
         . html_writer::empty_tag('input', ['type' => 'hidden', 'name' => 'action', 'value' => 'release'])
         . html_writer::tag('button', get_string('license_release_button', 'block_scormreport'), ['type' => 'submit', 'class' => 'btn btn-outline-danger'])
         . html_writer::end_tag('form');
-    echo $card(get_string('license_manage', 'block_scormreport'),
-        html_writer::tag('p', get_string('license_release_desc', 'block_scormreport')) . $check . ($hastoken ? $release : ''));
+    echo $card(
+        get_string('license_manage', 'block_scormreport'),
+        html_writer::tag('p', get_string('license_release_desc', 'block_scormreport')) . $check . ($hastoken ? $release : '')
+    );
 }
 
-echo html_writer::link(new moodle_url('/admin/settings.php', ['section' => 'blocksettingscormreport']),
-    get_string('license_back_settings', 'block_scormreport'), ['class' => 'btn btn-link px-0']);
+echo html_writer::link(
+    new moodle_url('/admin/settings.php', ['section' => 'blocksettingscormreport']),
+    get_string('license_back_settings', 'block_scormreport'),
+    ['class' => 'btn btn-link px-0']
+);
 
 echo $OUTPUT->footer();

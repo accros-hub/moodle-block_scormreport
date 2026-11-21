@@ -8,7 +8,7 @@
 //
 // Moodle is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
 //
 // You should have received a copy of the GNU General Public License
@@ -43,6 +43,9 @@ defined('MOODLE_INTERNAL') || die();
 class license {
     /** Token prefix and version. */
     private const TOKEN_PREFIX = 'ACCROS3';
+    /**
+     * @var string Expected signed token version.
+     */
     private const TOKEN_VERSION = 3;
 
     /** Product identifier included in every signed token. */
@@ -56,7 +59,13 @@ class license {
 
     /** Plugin configuration keys. */
     private const CFG_TYPE = 'lic_type';
+    /**
+     * @var string Configuration key for the license start.
+     */
     private const CFG_START = 'lic_start';
+    /**
+     * @var string Configuration key for the license expiry.
+     */
     private const CFG_EXPIRY = 'lic_expiry';
     /** Current token (tamper-proof source of truth). */
     private const CFG_TOKEN = 'lic_token';
@@ -68,6 +77,9 @@ class license {
     private const CFG_KEYLAST4 = 'lic_keylast4';
     /** Timestamp and result of the last contact with the licensing server. */
     private const CFG_LASTCHECK = 'lic_lastcheck';
+    /**
+     * @var string Configuration key for the last server result.
+     */
     private const CFG_LASTRESULT = 'lic_lastresult';
     /** Set when the server says the installation is gone (released, revoked): stop asking with the last token. */
     private const CFG_NOREFRESH = 'lic_norefresh';

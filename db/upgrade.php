@@ -23,6 +23,12 @@
  */
 defined('MOODLE_INTERNAL') || die();
 
+/**
+ * Run the database upgrades for this plugin.
+ *
+ * @param int $oldversion Previously installed version.
+ * @return bool
+ */
 function xmldb_block_scormreport_upgrade($oldversion) {
     global $DB;
     $dbman = $DB->get_manager();
@@ -96,4 +102,3 @@ function xmldb_block_scormreport_upgrade($oldversion) {
 
     return true;
 }
-

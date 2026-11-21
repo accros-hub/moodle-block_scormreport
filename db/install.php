@@ -13,6 +13,7 @@
 //
 // You should have received a copy of the GNU General Public License
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
+
 /**
  * Install steps for block_scormreport.
  *
@@ -23,6 +24,9 @@
 
 defined('MOODLE_INTERNAL') || die();
 
+/**
+ * Set up plugin data after installation.
+ */
 function xmldb_block_scormreport_install() {
     global $DB;
 

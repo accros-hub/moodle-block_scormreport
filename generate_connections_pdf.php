@@ -13,6 +13,7 @@
 //
 // You should have received a copy of the GNU General Public License
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
+
 /**
  * Generate a daily connection log PDF for a student (date, first/last time,
  * estimated active time and IP addresses used each day).
@@ -43,7 +44,9 @@ if (!is_enrolled($context, $targetuser, '', false) && !block_scormreport_is_cour
     throw new moodle_exception('notenrolled', 'block_scormreport');
 }
 
-$str = function($key, $a = null) { return get_string($key, 'block_scormreport', $a); };
+$str = function ($key, $a = null) {
+    return get_string($key, 'block_scormreport', $a);
+};
 
 // Get the daily connection data.
 // Tutor activity also includes creating content (posts, feedback, grades).
@@ -132,7 +135,7 @@ if (empty($daily)) {
     $cols = [28, 26, $pw - 118, 64];
     $headers = [$str('date'), $str('firstconn'), $str('activity'), $str('ipaddresses')];
 
-    $drawheader = function() use ($pdf, $cols, $headers) {
+    $drawheader = function () use ($pdf, $cols, $headers) {
         $pdf->SetFont('helvetica', 'B', 8);
         $pdf->SetFillColor(0, 115, 170);
         $pdf->SetTextColor(255, 255, 255);

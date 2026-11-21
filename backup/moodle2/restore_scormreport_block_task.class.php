@@ -8,11 +8,11 @@
 //
 // Moodle is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
 //
 // You should have received a copy of the GNU General Public License
-// along with Moodle. If not, see <http://www.gnu.org/licenses/>.
+// along with Moodle.  If not, see <https://www.gnu.org/licenses/>.
 
 /**
  * Restore task for the SCORM Report block.
@@ -31,29 +31,55 @@ require_once($CFG->dirroot .
  * Restore task for SCORM Report.
  */
 class restore_scormreport_block_task extends restore_block_task {
-
+    /**
+     * Define block-specific restore settings.
+     */
     protected function define_my_settings() {
     }
 
+    /**
+     * Register the notification restore step.
+     */
     protected function define_my_steps() {
         $this->add_step(new restore_scormreport_block_structure_step(
-            'scormreport_structure', 'scormreport.xml'
+            'scormreport_structure',
+            'scormreport.xml'
         ));
     }
 
+    /**
+     * Return the file areas to restore.
+     *
+     * @return array
+     */
     public function get_fileareas() {
-        return array();
+        return [];
     }
 
+    /**
+     * Return configuration fields containing encoded content.
+     *
+     * @return array
+     */
     public function get_configdata_encoded_attributes() {
-        return array();
+        return [];
     }
 
+    /**
+     * Return the fields with restore links.
+     *
+     * @return array
+     */
     public static function define_decode_contents() {
-        return array();
+        return [];
     }
 
+    /**
+     * Return the rules for decoding restore links.
+     *
+     * @return array
+     */
     public static function define_decode_rules() {
-        return array();
+        return [];
     }
 }
