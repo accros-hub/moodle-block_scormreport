@@ -1119,14 +1119,15 @@ function block_scormreport_get_daily_connections(int $courseid, int $userid, arr
     list($crudsql, $params) = $DB->get_in_or_equal($crud, SQL_PARAMS_NAMED, 'crud');
     $params['courseid'] = $courseid;
     $params['userid'] = $userid;
-    $logs = $DB->get_recordset_sql(
-        "SELECT id, timecreated, ip, contextid, contextlevel, contextinstanceid, component
-           FROM {logstore_standard_log}
-          WHERE courseid = :courseid AND userid = :userid
-            AND anonymous = 0 AND crud $crudsql
-          ORDER BY timecreated ASC",
+    $where = "courseid = :courseid AND userid = :userid AND anonymous = 0 AND crud $crudsql";
+    $bounds = $DB->get_record_sql(
+        "SELECT MIN(timecreated) AS mintime, MAX(timecreated) AS maxtime
+           FROM {logstore_standard_log} WHERE $where",
         $params
     );
+    if (!$bounds || $bounds->mintime === null) {
+        return [];
+    }
 
     // Resolve activity names once (map course_module id => activity name).
     $cmnames = [];
@@ -1138,8 +1139,17 @@ function block_scormreport_get_daily_connections(int $courseid, int $userid, arr
 
     // Group by (day + activity).
     $groups = [];
-    try {
-        foreach ($logs as $log) {
+    for ($from = (int)$bounds->mintime; $from <= (int)$bounds->maxtime; $from += 90 * DAYSECS) {
+        $windowparams = $params + ['fromtime' => $from, 'totime' => $from + 90 * DAYSECS];
+        $logs = $DB->get_recordset_sql(
+            "SELECT id, timecreated, ip, contextid, contextlevel, contextinstanceid, component
+               FROM {logstore_standard_log}
+              WHERE $where AND timecreated >= :fromtime AND timecreated < :totime
+              ORDER BY timecreated ASC, id ASC",
+            $windowparams
+        );
+        try {
+            foreach ($logs as $log) {
         $day = userdate($log->timecreated, '%Y-%m-%d');
 
         // Determine the activity: context level 70 = module.
@@ -1169,8 +1179,9 @@ function block_scormreport_get_daily_connections(int $courseid, int $userid, arr
         }
     }
 
-    } finally {
-        $logs->close();
+        } finally {
+            $logs->close();
+        }
     }
 
     // Build the ordered result (by date, then first time).
