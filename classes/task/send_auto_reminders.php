@@ -53,7 +53,6 @@ class send_auto_reminders extends \core\task\scheduled_task {
         $cooldown = $days * 86400; // Do not repeat before N days
 
         require_once(__DIR__ . '/../../lib_report.php');
-        require_once(__DIR__ . '/../license.php');
 
         $courses = $DB->get_records_sql(
             "SELECT DISTINCT c.id, c.fullname, c.startdate, c.enddate, c.timecreated
