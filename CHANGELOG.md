@@ -1,3 +1,8 @@
+## 1.12.8-v174 (2026-11-21)
+
+- MMRT-293: Include notification history in course backups with user data and restore it with Moodle's user mappings.
+- Restore each notification from its XML path without grouping the block root.
+
 ## 1.12.7-v173.1 (2026-11-16)
 
 - Security hardening: legacy license upgrade no longer deletes global Moodle configuration keys.

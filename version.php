@@ -25,8 +25,8 @@
 defined('MOODLE_INTERNAL') || die();
 
 $plugin->component = 'block_scormreport';
-$plugin->version   = 2026111600;
+$plugin->version   = 2026112100;
 $plugin->requires  = 2025041400; // Moodle 5.0.0
 $plugin->supported = [500, 503];
 $plugin->maturity  = MATURITY_STABLE;
-$plugin->release   = '1.12.7-v173.1';
+$plugin->release   = '1.12.8-v174';
