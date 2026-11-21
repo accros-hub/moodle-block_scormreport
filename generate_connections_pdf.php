@@ -40,7 +40,7 @@ if (!\block_scormreport\license::course_allowed($course)) {
 }
 
 $targetuser = $DB->get_record('user', ['id' => $userid, 'deleted' => 0], '*', MUST_EXIST);
-if (!is_enrolled($context, $targetuser, '', false) && !scormreport_is_course_tutor($context, $userid)) {
+if (!is_enrolled($context, $targetuser, '', false) && !block_scormreport_is_course_tutor($context, $userid)) {
     throw new moodle_exception('notenrolled', 'block_scormreport');
 }
 
@@ -48,8 +48,8 @@ $str = function($key, $a = null) { return get_string($key, 'block_scormreport', 
 
 // Get the daily connection data.
 // Tutor activity also includes creating content (posts, feedback, grades).
-$istutor = scormreport_is_course_tutor($context, $userid);
-$daily = scormreport_get_daily_connections($courseid, $userid, $istutor ? ['c', 'r', 'u', 'd'] : ['r', 'u']);
+$istutor = block_scormreport_is_course_tutor($context, $userid);
+$daily = block_scormreport_get_daily_connections($courseid, $userid, $istutor ? ['c', 'r', 'u', 'd'] : ['r', 'u']);
 
 // Logo.
 $logopath = '';

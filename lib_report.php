@@ -24,7 +24,7 @@
  */
 defined('MOODLE_INTERNAL') || die();
 
-function scormreport_get_data($courseid, $userid, $scormid, $context, $course, $DB, $CFG) {
+function block_scormreport_get_data($courseid, $userid, $scormid, $context, $course, $DB, $CFG) {
 
     // 1. SCORM activities in the course
     $scorms = $DB->get_records_sql(
@@ -164,7 +164,7 @@ function scormreport_get_data($courseid, $userid, $scormid, $context, $course, $
         }
 
         // 6c. Test interactions (questions/answers) for the last attempt.
-        $interactionsmap = scormreport_get_interactions($attemptids, $DB);
+        $interactionsmap = block_scormreport_get_interactions($attemptids, $DB);
 
         // 7. CMI values (chunked)
         $valuesmap = [];
@@ -228,7 +228,7 @@ function scormreport_get_data($courseid, $userid, $scormid, $context, $course, $
                             foreach (['cmi.core.total_time', 'cmi.total_time', 'cmi.core.session_time', 'cmi.session_time'] as $en) {
                                 $elid = $timeelids[$en] ?? null;
                                 if ($elid && isset($elvals[$elid]) && $elvals[$elid] !== '') {
-                                    $secs = scormreport_parse_scorm_time($elvals[$elid]);
+                                    $secs = block_scormreport_parse_scorm_time($elvals[$elid]);
                                     break;
                                 }
                             }
@@ -309,7 +309,7 @@ function scormreport_get_data($courseid, $userid, $scormid, $context, $course, $
             $ismultisco = ($scocounts[$scorm->id] ?? 0) > 1;
 
             if (!$attemptid) {
-                $detaildata[] = scormreport_empty_detail($student, $scorm);
+                $detaildata[] = block_scormreport_empty_detail($student, $scorm);
                 // For Multi-SCO packages without attempts, populate SCOs with their actual names
                 $emptyscos = [];
                 if ($ismultisco && isset($scosbyScorm[$scorm->id])) {
@@ -343,12 +343,12 @@ function scormreport_get_data($courseid, $userid, $scormid, $context, $course, $
             }
 
             if ($ismultisco) {
-                $data = scormreport_build_multisco(
+                $data = block_scormreport_build_multisco(
                     $scorm, $student, $attemptid, $elementids,
                     $valuesmap, $scoaccessmap, $scosbyScorm[$scorm->id] ?? []
                 );
             } else {
-                $data = scormreport_build_singlesco(
+                $data = block_scormreport_build_singlesco(
                     $scorm, $student, $attemptid, $elementids,
                     $valuesmap, $accessmap
                 );
@@ -400,9 +400,9 @@ function scormreport_get_data($courseid, $userid, $scormid, $context, $course, $
                 } else {
                     // SCORM simple: cuenta como 1
                     $totalscos  = 1;
-                    $passedscos = scormreport_is_passed($data['status']) ? 1 : 0;
+                    $passedscos = block_scormreport_is_passed($data['status']) ? 1 : 0;
                     $seen++;
-                    if (scormreport_is_passed($data['status'])) $passed++;
+                    if (block_scormreport_is_passed($data['status'])) $passed++;
                 }
                 $pctscos = $totalscos > 0 ? round(($passedscos / $totalscos) * 100, 1) . '%' : '-';
 
@@ -421,7 +421,7 @@ function scormreport_get_data($courseid, $userid, $scormid, $context, $course, $
                     'email'       => $student->email,
                     'dni'         => $student->idnumber ?? '',
                     'scormname'   => $scorm->name,
-                    'timescorm'   => scormreport_hms($scormtime),
+                    'timescorm'   => block_scormreport_hms($scormtime),
                     'seconds'     => $scormtime,
                     'score'       => $displayscore,
                     'status'      => $data['status'],
@@ -440,7 +440,7 @@ function scormreport_get_data($courseid, $userid, $scormid, $context, $course, $
                 // Accumulate for the global dropdown.
                 $scormdetails[] = [
                     'scormname'      => $scorm->name,
-                    'timescorm'      => scormreport_hms($scormtime),
+                    'timescorm'      => block_scormreport_hms($scormtime),
                     'seconds'        => $scormtime,
                     'score'          => $displayscore,
                     'status'         => $data['status'],
@@ -452,10 +452,10 @@ function scormreport_get_data($courseid, $userid, $scormid, $context, $course, $
                     'pctscos'        => $pctscos,
                     'scos'           => $multisco ? $data['scos'] : [],
                     'interactions'   => $scorminteractions,
-                    'passed'         => scormreport_is_passed($data['status']),
+                    'passed'         => block_scormreport_is_passed($data['status']),
                 ];
             } else {
-                $detaildata[] = scormreport_empty_detail($student, $scorm);
+                $detaildata[] = block_scormreport_empty_detail($student, $scorm);
                 $scormdetails[] = [
                     'scormname'      => $scorm->name,
                     'timescorm'      => '-',
@@ -495,7 +495,7 @@ function scormreport_get_data($courseid, $userid, $scormid, $context, $course, $
             'company'      => $student->institution ?? '',
             'email'        => $student->email,
             'dni'          => $student->idnumber ?? '',
-            'timescorm'    => scormreport_hms($totalseconds),
+            'timescorm'    => block_scormreport_hms($totalseconds),
             'totalseconds' => $totalseconds,
             'pcttotal'     => $pcttotal,
             'score'        => $notamedia,
@@ -525,7 +525,7 @@ function scormreport_get_data($courseid, $userid, $scormid, $context, $course, $
 /**
  * Empty row for a student with no data in a SCORM.
  */
-function scormreport_empty_detail($student, $scorm): array {
+function block_scormreport_empty_detail($student, $scorm): array {
     return [
         'studentname' => fullname($student),
         'company'     => $student->institution ?? '',
@@ -551,7 +551,7 @@ function scormreport_empty_detail($student, $scorm): array {
 /**
  * Build data for a single-SCO SCORM from the preloaded maps.
  */
-function scormreport_build_singlesco($scorm, $student, $attemptid, $elementids, $valuesmap, $accessmap) {
+function block_scormreport_build_singlesco($scorm, $student, $attemptid, $elementids, $valuesmap, $accessmap) {
     $values = [];
     if (isset($valuesmap[$attemptid])) {
         foreach ($valuesmap[$attemptid] as $scoid => $elvals) {
@@ -563,9 +563,9 @@ function scormreport_build_singlesco($scorm, $student, $attemptid, $elementids, 
 
     if (empty($values)) return null;
 
-    $totalseconds = scormreport_calc_time($values, $elementids);
-    $score  = scormreport_calc_score($values, $elementids);
-    $status = scormreport_calc_status($values, $elementids);
+    $totalseconds = block_scormreport_calc_time($values, $elementids);
+    $score  = block_scormreport_calc_score($values, $elementids);
+    $status = block_scormreport_calc_status($values, $elementids);
 
     $acc = $accessmap[$student->id][$scorm->id] ?? null;
     $fa_ts = ($acc && !empty($acc->fa)) ? (int)$acc->fa : 0;
@@ -586,7 +586,7 @@ function scormreport_build_singlesco($scorm, $student, $attemptid, $elementids, 
 /**
  * Build data for a multi-SCO SCORM from the preloaded maps.
  */
-function scormreport_build_multisco($scorm, $student, $attemptid, $elementids, $valuesmap, $scoaccessmap, $scos) {
+function block_scormreport_build_multisco($scorm, $student, $attemptid, $elementids, $valuesmap, $scoaccessmap, $scos) {
     if (empty($scos)) return null;
 
     $totalseconds = 0;
@@ -600,7 +600,7 @@ function scormreport_build_multisco($scorm, $student, $attemptid, $elementids, $
     foreach ($scos as $sco) {
         $values = $valuesmap[$attemptid][$sco->id] ?? [];
 
-        $secs = scormreport_calc_time($values, $elementids);
+        $secs = block_scormreport_calc_time($values, $elementids);
         if ($secs <= 0 && empty($values)) {
             $scodetails[] = [
                 'title' => $sco->title, 'seconds' => 0, 'score' => false,
@@ -611,10 +611,10 @@ function scormreport_build_multisco($scorm, $student, $attemptid, $elementids, $
 
         $initiated++;
         $totalseconds += $secs;
-        $sc = scormreport_calc_score($values, $elementids);
+        $sc = block_scormreport_calc_score($values, $elementids);
         if ($sc !== false) $scores[] = (float)$sc;
-        $st = scormreport_calc_status($values, $elementids);
-        if (scormreport_is_passed($st)) $passed++;
+        $st = block_scormreport_calc_status($values, $elementids);
+        if (block_scormreport_is_passed($st)) $passed++;
 
         $acc = $scoaccessmap[$student->id][$scorm->id][$sco->id] ?? null;
         $fa = ($acc && !empty($acc->fa)) ? userdate($acc->fa, '%d/%m/%Y %H:%M') : '-';
@@ -656,24 +656,24 @@ function scormreport_build_multisco($scorm, $student, $attemptid, $elementids, $
 // Pure calculation functions (no DB)
 // ═══════════════════════════════════════════════════════════════════════════
 
-function scormreport_calc_time(array $values, array $elementids): int {
+function block_scormreport_calc_time(array $values, array $elementids): int {
     // Priority: total_time > session_time as fallback.
     foreach (['cmi.core.total_time', 'cmi.total_time'] as $t) {
         if (isset($elementids[$t], $values[$elementids[$t]])) {
-            $secs = scormreport_parse_scorm_time($values[$elementids[$t]]);
+            $secs = block_scormreport_parse_scorm_time($values[$elementids[$t]]);
             if ($secs > 0) return $secs;
         }
     }
     // Fallback to session_time only if no total_time (SCORM 1.2 and 2004).
     foreach (['cmi.core.session_time', 'cmi.session_time'] as $t) {
         if (isset($elementids[$t], $values[$elementids[$t]])) {
-            return scormreport_parse_scorm_time($values[$elementids[$t]]);
+            return block_scormreport_parse_scorm_time($values[$elementids[$t]]);
         }
     }
     return 0;
 }
 
-function scormreport_calc_score(array $values, array $elementids) {
+function block_scormreport_calc_score(array $values, array $elementids) {
     foreach (['cmi.core.score.raw', 'cmi.score.raw'] as $s) {
         if (isset($elementids[$s], $values[$elementids[$s]])
             && $values[$elementids[$s]] !== '' && is_numeric($values[$elementids[$s]])) {
@@ -683,7 +683,7 @@ function scormreport_calc_score(array $values, array $elementids) {
     return false;
 }
 
-function scormreport_calc_status(array $values, array $elementids): string {
+function block_scormreport_calc_status(array $values, array $elementids): string {
     // SCORM 2004: when present, success_status decides passed/failed.
     if (isset($elementids['cmi.success_status'], $values[$elementids['cmi.success_status']])) {
         $success = trim(strtolower($values[$elementids['cmi.success_status']]));
@@ -707,17 +707,17 @@ function scormreport_calc_status(array $values, array $elementids): string {
     return 'incomplete';
 }
 
-function scormreport_is_passed($status) {
+function block_scormreport_is_passed($status) {
     // Both 'passed' and 'completed' count as passed for percentage/threshold.
-    // The visual badge still distinguishes them (see scormreport_get_badge_info).
+    // The visual badge still distinguishes them (see block_scormreport_get_badge_info).
     return in_array(strtolower(trim($status)), ['passed', 'completed']);
 }
 
-function scormreport_is_completed($status) {
+function block_scormreport_is_completed($status) {
     return in_array(strtolower(trim($status)), ['passed', 'completed']);
 }
 
-function scormreport_hms($seconds) {
+function block_scormreport_hms($seconds) {
     if ($seconds <= 0) return '-';
     return sprintf('%02d:%02d:%02d',
         (int)floor($seconds / 3600),
@@ -733,7 +733,7 @@ function scormreport_hms($seconds) {
  * @param string $timestr
  * @return int seconds
  */
-function scormreport_parse_scorm_time($timestr): int {
+function block_scormreport_parse_scorm_time($timestr): int {
     if (empty($timestr)) return 0;
     // SCORM 2004 ISO 8601 duration: PT1H30M45S
     if (preg_match('/^PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+(?:\.\d+)?)S)?$/', $timestr, $m)) {
@@ -751,18 +751,18 @@ function scormreport_parse_scorm_time($timestr): int {
 }
 
 /**
- * Legacy alias for scormreport_parse_scorm_time.
- * @deprecated use scormreport_parse_scorm_time
+ * Legacy alias for block_scormreport_parse_scorm_time.
+ * @deprecated use block_scormreport_parse_scorm_time
  */
-function scormreport_time_to_seconds($timestr) {
-    return scormreport_parse_scorm_time($timestr);
+function block_scormreport_time_to_seconds($timestr) {
+    return block_scormreport_parse_scorm_time($timestr);
 }
 
 /**
  * Sanitize a value for spreadsheet export to prevent formula injection.
  * Prefixes with a single quote if the value starts with =, +, - or @.
  */
-function scormreport_escape_spreadsheet($value) {
+function block_scormreport_escape_spreadsheet($value) {
     if (is_string($value) && preg_match('/^\s*[=+\-@]/u', $value)) {
         return "'" . $value;
     }
@@ -772,7 +772,7 @@ function scormreport_escape_spreadsheet($value) {
 /**
  * Get badge class and label for a SCORM status.
  */
-function scormreport_get_badge_info($status) {
+function block_scormreport_get_badge_info($status) {
     switch (strtolower(trim($status))) {
         case 'passed':
             return ['badge' => 'badge-success', 'label' => get_string('passed',       'block_scormreport')];
@@ -797,7 +797,7 @@ function scormreport_get_badge_info($status) {
  * @param int $tolerance Tolerance in points (default 15)
  * @return array ['status' => string, 'badge' => string, 'pctdeadline' => float, 'gap' => float]
  */
-function scormreport_calc_deadline_status(float $pctsuperados, int $startdate, int $enddate, int $tolerance = 15): array {
+function block_scormreport_calc_deadline_status(float $pctsuperados, int $startdate, int $enddate, int $tolerance = 15): array {
     $now = time();
 
     // No dates configured
@@ -876,7 +876,7 @@ function scormreport_calc_deadline_status(float $pctsuperados, int $startdate, i
  * @param string[] $crud Log operations that count as activity (default: read and update).
  * @return array [userid => ['sessions' => int, 'total_seconds' => int, 'first_login' => int, 'last_login' => int, 'dates' => [date => seconds]]]
  */
-function scormreport_get_connections(int $courseid, array $studentids, int $timeout = 1800,
+function block_scormreport_get_connections(int $courseid, array $studentids, int $timeout = 1800,
         array $crud = ['r', 'u']): array {
     global $DB;
 
@@ -969,7 +969,7 @@ function scormreport_get_connections(int $courseid, array $studentids, int $time
  * @param object $DB
  * @return array [attemptid][scoid] => [ ['id'=>, 'response'=>, 'correct'=>, 'result'=>, 'type'=>], ... ]
  */
-function scormreport_get_interactions(array $attemptids, $DB): array {
+function block_scormreport_get_interactions(array $attemptids, $DB): array {
     if (empty($attemptids)) return [];
 
     $result = [];
@@ -1042,7 +1042,7 @@ function scormreport_get_interactions(array $attemptids, $DB): array {
  * @param stdClass $course
  * @param int $courseid
  */
-function scormreport_show_locked_page($PAGE, $OUTPUT, $course, $courseid) {
+function block_scormreport_show_locked_page($PAGE, $OUTPUT, $course, $courseid) {
     global $CFG;
     require_once($CFG->dirroot . '/blocks/scormreport/classes/license.php');
 
@@ -1115,7 +1115,7 @@ function scormreport_show_locked_page($PAGE, $OUTPUT, $course, $courseid) {
  * @return array Ordered by date then first time:
  *               [ ['date'=>ts, 'first'=>ts, 'activity'=>string, 'ips'=>[...]], ... ]
  */
-function scormreport_get_daily_connections(int $courseid, int $userid, array $crud = ['r', 'u']): array {
+function block_scormreport_get_daily_connections(int $courseid, int $userid, array $crud = ['r', 'u']): array {
     global $DB, $CFG;
 
     list($crudsql, $params) = $DB->get_in_or_equal($crud, SQL_PARAMS_NAMED, 'crud');
@@ -1199,7 +1199,7 @@ function scormreport_get_daily_connections(int $courseid, int $userid, array $cr
  *
  * @return int[]
  */
-function scormreport_get_tutor_roleids(): array {
+function block_scormreport_get_tutor_roleids(): array {
     $config = get_config('block_scormreport', 'tutor_roles');
     if ($config !== false) {
         return array_values(array_filter(array_map('intval', explode(',', (string)$config))));
@@ -1219,10 +1219,10 @@ function scormreport_get_tutor_roleids(): array {
  * @param context_course $context Course context.
  * @return array [userid => stdClass user record plus 'rolenames' (string)]
  */
-function scormreport_get_course_tutors(context_course $context): array {
+function block_scormreport_get_course_tutors(context_course $context): array {
     global $DB;
 
-    $roleids = scormreport_get_tutor_roleids();
+    $roleids = block_scormreport_get_tutor_roleids();
     if (empty($roleids)) {
         return [];
     }
@@ -1264,9 +1264,9 @@ function scormreport_get_course_tutors(context_course $context): array {
  * @param int $userid User id.
  * @return bool
  */
-function scormreport_is_course_tutor(context_course $context, int $userid): bool {
+function block_scormreport_is_course_tutor(context_course $context, int $userid): bool {
     global $DB;
-    $roleids = scormreport_get_tutor_roleids();
+    $roleids = block_scormreport_get_tutor_roleids();
     if (empty($roleids)) {
         return false;
     }
@@ -1281,14 +1281,14 @@ function scormreport_is_course_tutor(context_course $context, int $userid): bool
  * Answer to show for an interaction: the answer text read from the package when
  * the package reports identifiers, otherwise the readable form of the raw value.
  *
- * @param array $inter Interaction as returned by scormreport_get_interactions().
+ * @param array $inter Interaction as returned by block_scormreport_get_interactions().
  * @return string
  */
-function scormreport_display_response(array $inter): string {
+function block_scormreport_display_response(array $inter): string {
     if (isset($inter['responsetext']) && $inter['responsetext'] !== '') {
         return $inter['responsetext'];
     }
-    return scormreport_format_response((string)($inter['response'] ?? ''));
+    return block_scormreport_format_response((string)($inter['response'] ?? ''));
 }
 
 /**
@@ -1303,7 +1303,7 @@ function scormreport_display_response(array $inter): string {
  * @param string $value Raw learner_response / student_response.
  * @return string
  */
-function scormreport_format_response(string $value): string {
+function block_scormreport_format_response(string $value): string {
     $value = trim($value);
     if ($value === '' || $value === '-') {
         return '-';
@@ -1333,7 +1333,7 @@ function scormreport_format_response(string $value): string {
  * @return array [userid => ['connections' => int, 'first' => int, 'last' => int,
  *               'days' => [Y-m-d => ['date' => int, 'connections' => int, 'first' => int, 'last' => int]]]]
  */
-function scormreport_get_tutor_daily_activity(int $courseid, array $userids, int $timeout = 1800): array {
+function block_scormreport_get_tutor_daily_activity(int $courseid, array $userids, int $timeout = 1800): array {
     global $DB;
 
     $result = [];

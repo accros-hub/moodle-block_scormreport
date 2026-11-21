@@ -15,7 +15,7 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 /**
  * SCORM report page for teachers.
- * All data is now computed centrally via lib_report.php / scormreport_get_data().
+ * All data is now computed centrally via lib_report.php / block_scormreport_get_data().
  *
  * @package    block_scormreport
  * @copyright  2026 Accros Business Solutions
@@ -55,8 +55,8 @@ $cansendreminders = has_capability('block/scormreport:sendreminders', $context);
 // ── License check: courses not covered by the license show the locked page. ──
 require_once($CFG->dirroot . '/blocks/scormreport/classes/license.php');
 if (!\block_scormreport\license::course_allowed($course)) {
-    scormreport_show_locked_page($PAGE, $OUTPUT, $course, $courseid);
-    // scormreport_show_locked_page() calls exit.
+    block_scormreport_show_locked_page($PAGE, $OUTPUT, $course, $courseid);
+    // block_scormreport_show_locked_page() calls exit.
 }
 
 // ── Column preferences (per user) ──
@@ -143,7 +143,7 @@ if ($DB->record_exists('modules', ['name' => 'diploma'])) {
 }
 
 // ─── All data from central function ─────────────────────────────────────────
-$reportdata  = scormreport_get_data($courseid, $userid, $scormid, $context, $course, $DB, $CFG);
+$reportdata  = block_scormreport_get_data($courseid, $userid, $scormid, $context, $course, $DB, $CFG);
 $students    = $reportdata['students'];
 $scorms      = $reportdata['scorms'];
 $globaldata  = $reportdata['globaldata'];
@@ -201,7 +201,7 @@ if ($download) {
             $sheet->getStyle('A1:K1')->applyFromArray($headerstyle);
             $rownum = 2;
             foreach ($detaildata as $row) {
-                $sheet->fromArray(array_map("scormreport_escape_spreadsheet", [
+                $sheet->fromArray(array_map("block_scormreport_escape_spreadsheet", [
                     $course->fullname,
                     $row['studentname'], $row['company'] ?? '', $row['dni'], $row['email'], $row['scormname'],
                     $row['timescorm'],   $row['score'],     $row['status'],
@@ -259,7 +259,7 @@ if ($download) {
                 foreach ($excelcols as $ck) $line[] = $colmap[$ck]['val']($row);
                 $line[] = get_string('fullreport', 'block_scormreport');
                 $line[] = get_string('logentries', 'block_scormreport');
-                $sheet->fromArray(array_map("scormreport_escape_spreadsheet", $line), null, 'A' . $rownum);
+                $sheet->fromArray(array_map("block_scormreport_escape_spreadsheet", $line), null, 'A' . $rownum);
 
                 // Hyperlinks go in the last two columns.
                 $linkcol1 = \PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($ncols - 1);
@@ -303,8 +303,8 @@ if ($download) {
         foreach ($globaldata as $row) {
             if (empty($row['scormdetails'])) continue;
             foreach ($row['scormdetails'] as $sd) {
-                $badgeinfo = scormreport_get_badge_info($sd['status']);
-                $sheet2->fromArray(array_map('scormreport_escape_spreadsheet', [
+                $badgeinfo = block_scormreport_get_badge_info($sd['status']);
+                $sheet2->fromArray(array_map('block_scormreport_escape_spreadsheet', [
                     $row['studentname'], $row['dni'], $row['email'],
                     $sd['scormname'], $sd['timescorm'], $sd['score'],
                     $badgeinfo['label'], $sd['firstaccess'], $sd['lastaccess'],
@@ -350,7 +350,7 @@ if ($download) {
                 get_string('lastaccess',  'block_scormreport'),
             ], ';');
             foreach ($detaildata as $row) {
-                fputcsv($fp, array_map('scormreport_escape_spreadsheet', [
+                fputcsv($fp, array_map('block_scormreport_escape_spreadsheet', [
                     $course->fullname,
                     $row['studentname'], $row['company'] ?? '', $row['dni'], $row['email'], $row['scormname'],
                     $row['timescorm'],   $row['score'],     $row['status'],
@@ -375,7 +375,7 @@ if ($download) {
                 get_string('logentries',   'block_scormreport'),
             ], ';');
             foreach ($globaldata as $row) {
-                fputcsv($fp, array_map('scormreport_escape_spreadsheet', [
+                fputcsv($fp, array_map('block_scormreport_escape_spreadsheet', [
                     $course->fullname,
                     $row['studentname'], $row['company'] ?? '', $row['dni'], $row['email'],
                     $row['timescorm'], $row['pcttotal'],
@@ -871,7 +871,7 @@ if (!$isdetail) {
 
             // Deadline traffic-light (optional column).
             if ($show_col('deadlinestatus')) {
-                $dlstatus = scormreport_calc_deadline_status($pspct, $course->startdate ?? 0, $course->enddate ?? 0, $deadline_tolerance);
+                $dlstatus = block_scormreport_calc_deadline_status($pspct, $course->startdate ?? 0, $course->enddate ?? 0, $deadline_tolerance);
                 echo '<td class="text-center">
                         <span class="badge ' . $dlstatus['badge'] . ' badge-apt" title="' . get_string('pctdeadline', 'block_scormreport') . ': ' . $dlstatus['pctdeadline'] . '%">'
                             . $dlstatus['label'] . '</span>
@@ -955,7 +955,7 @@ if (!$isdetail) {
                 $scosubindex = 0;
                 foreach ($row['scormdetails'] as $sd) {
                     $scosubindex++;
-                    $sdbadge = scormreport_get_badge_info($sd['status']);
+                    $sdbadge = block_scormreport_get_badge_info($sd['status']);
                     $sdname = htmlspecialchars($sd['scormname']);
                     $hasinteractions = !empty($sd['interactions']);
 
@@ -1009,7 +1009,7 @@ if (!$isdetail) {
                             }
                             echo '<tr>
                                 <td class="sco-cell-mono" style="text-align:center;">' . $qn . '</td>
-                                <td>' . s(scormreport_display_response($inter)) . '</td>
+                                <td>' . s(block_scormreport_display_response($inter)) . '</td>
                                 <td style="text-align:center;">' . $resbadge . '</td>
                             </tr>';
                         }
@@ -1025,10 +1025,10 @@ if (!$isdetail) {
                         $subidx = 0;
                         foreach ($sd['scos'] as $subsco) {
                             $subidx++;
-                            $subbadge = scormreport_get_badge_info($subsco['status']);
+                            $subbadge = block_scormreport_get_badge_info($subsco['status']);
                             echo '<tr>
                                 <td class="sco-subsco-row">↳ ' . htmlspecialchars($subsco['title']) . '</td>
-                                <td class="sco-cell-mono">' . scormreport_hms($subsco['seconds']) . '</td>
+                                <td class="sco-cell-mono">' . block_scormreport_hms($subsco['seconds']) . '</td>
                                 <td style="text-align:center;">' . (($subsco['score'] !== false) ? $subsco['score'] : '-') . '</td>
                                 <td style="text-align:center;"><span class="badge ' . $subbadge['badge'] . '">' . $subbadge['label'] . '</span></td>
                                 <td>' . ($subsco['firstaccess'] ?? '-') . '</td>
@@ -1069,7 +1069,7 @@ if ($isdetail) {
         $rowindex = 0;
         foreach ($detaildata as $row) {
             $rowindex++;
-            $badgeinfo = scormreport_get_badge_info($row['status']);
+            $badgeinfo = block_scormreport_get_badge_info($row['status']);
             $badge = $badgeinfo['badge'];
             $label = $badgeinfo['label'];
 
@@ -1121,10 +1121,10 @@ if ($isdetail) {
                         <tbody>';
 
                 foreach ($row['scos'] as $sco) {
-                    $scobadge = scormreport_get_badge_info($sco['status']);
+                    $scobadge = block_scormreport_get_badge_info($sco['status']);
                     echo '<tr>
                         <td class="sco-cell-name">' . htmlspecialchars($sco['title']) . '</td>
-                        <td class="sco-cell-mono">' . scormreport_hms($sco['seconds']) . '</td>
+                        <td class="sco-cell-mono">' . block_scormreport_hms($sco['seconds']) . '</td>
                         <td style="text-align:center;">' . (($sco['score'] !== false) ? $sco['score'] : '-') . '</td>
                         <td style="text-align:center;"><span class="badge ' . $scobadge['badge'] . '">' . $scobadge['label'] . '</span></td>
                         <td>' . $sco['firstaccess'] . '</td>

@@ -49,7 +49,7 @@ $apt_threshold = max(0, min(100, $apt_threshold));
 $str = function($key, $a = null) { return get_string($key, 'block_scormreport', $a); };
 
 // Get report data
-$reportdata = scormreport_get_data($courseid, $userid, 0, $context, $course, $DB, $CFG);
+$reportdata = block_scormreport_get_data($courseid, $userid, 0, $context, $course, $DB, $CFG);
 $globaldata = $reportdata['globaldata'];
 $detaildata = $reportdata['detaildata'];
 $coursehours = $reportdata['coursehours'];
@@ -69,7 +69,7 @@ if (!$studentdata) {
 }
 
 // Get connection data
-$connections = scormreport_get_connections($courseid, [$userid]);
+$connections = block_scormreport_get_connections($courseid, [$userid]);
 $conn = $connections[$userid] ?? ['sessions' => 0, 'total_seconds' => 0, 'first_login' => 0, 'last_login' => 0, 'dates' => []];
 
 // Logo
@@ -93,7 +93,7 @@ $enddate = $course->enddate ? userdate($course->enddate, '%d/%m/%Y') : '-';
  * Draw a two-column label:value row where both cells wrap and the row height
  * adapts to the tallest. Label in bold, value in normal.
  */
-function draw_label_value($pdf, $label_w, $value_w, $label, $value, $minh = 7) {
+function block_scormreport_draw_label_value($pdf, $label_w, $value_w, $label, $value, $minh = 7) {
     $pdf->SetFont('helvetica', 'B', 10);
     $hl = $pdf->getStringHeight($label_w, (string)$label);
     $pdf->SetFont('helvetica', '', 10);
@@ -114,7 +114,7 @@ function draw_label_value($pdf, $label_w, $value_w, $label, $value, $minh = 7) {
 /**
  * Draw a table header row with wrapping cells (fixed height, small bold font).
  */
-function draw_header_row($pdf, array $widths, array $labels, $h = 8) {
+function block_scormreport_draw_header_row($pdf, array $widths, array $labels, $h = 8) {
     $pdf->SetFont('helvetica', 'B', 7);
     $pdf->SetFillColor(230, 240, 250);
     $pdf->SetTextColor(0, 0, 0);
@@ -140,7 +140,7 @@ $pdf->SetCreator('Moodle - block_scormreport');
  * @param bool $fill
  * @param float $minh
  */
-function draw_wrapped_row($pdf, array $cells, bool $fill = false, float $minh = 5) {
+function block_scormreport_draw_wrapped_row($pdf, array $cells, bool $fill = false, float $minh = 5) {
     // Compute the height needed by the tallest cell.
     $maxh = $minh;
     foreach ($cells as $c) {
@@ -209,7 +209,7 @@ $fields = [
 ];
 foreach ($fields as $f) {
     $pdf->SetFont('helvetica', '', 10);
-    draw_label_value($pdf, $label_w, $value_w, $f[0] . ':', $f[1], $row_h);
+    block_scormreport_draw_label_value($pdf, $label_w, $value_w, $f[0] . ':', $f[1], $row_h);
 }
 $pdf->Ln(5);
 
@@ -236,7 +236,7 @@ $cfields = [
     [$str('result_label'), $apto],
 ];
 foreach ($cfields as $f) {
-    draw_label_value($pdf, $label_w, $value_w, $f[0] . ':', $f[1], $row_h);
+    block_scormreport_draw_label_value($pdf, $label_w, $value_w, $f[0] . ':', $f[1], $row_h);
 }
 $pdf->Ln(5);
 
@@ -253,14 +253,14 @@ $pdf->Ln(3);
 // Header
 $cols = [50, 22, 20, 25, 24, 24];
 $headers_t = [$str('scormname'), $str('timescorm'), $str('score'), $str('status'), $str('firstaccess'), $str('lastaccess')];
-draw_header_row($pdf, $cols, $headers_t);
+block_scormreport_draw_header_row($pdf, $cols, $headers_t);
 
 // Rows
 $pdf->SetFont('helvetica', '', 7);
 $fill = false;
 $userdetails = !empty($studentdata['scormdetails']) ? $studentdata['scormdetails'] : [];
 foreach ($userdetails as $sd) {
-    $badgeinfo = scormreport_get_badge_info($sd['status']);
+    $badgeinfo = block_scormreport_get_badge_info($sd['status']);
     $rowcells = [
         ['w' => $cols[0], 'text' => $sd['scormname'],   'align' => 'L'],
         ['w' => $cols[1], 'text' => $sd['timescorm'],   'align' => 'C'],
@@ -270,12 +270,12 @@ foreach ($userdetails as $sd) {
         ['w' => $cols[5], 'text' => $sd['lastaccess'],  'align' => 'C'],
     ];
     $pdf->SetFillColor($fill ? 245 : 255, $fill ? 248 : 255, $fill ? 252 : 255);
-    if (!draw_wrapped_row($pdf, $rowcells, $fill)) {
+    if (!block_scormreport_draw_wrapped_row($pdf, $rowcells, $fill)) {
         $pdf->AddPage();
-        draw_header_row($pdf, $cols, $headers_t);
+        block_scormreport_draw_header_row($pdf, $cols, $headers_t);
         $pdf->SetFont('helvetica', '', 7);
         $pdf->SetFillColor($fill ? 245 : 255, $fill ? 248 : 255, $fill ? 252 : 255);
-        draw_wrapped_row($pdf, $rowcells, $fill);
+        block_scormreport_draw_wrapped_row($pdf, $rowcells, $fill);
     }
     $fill = !$fill;
 }
@@ -305,7 +305,7 @@ if ($hasany) {
         // Header row.
         $icols = [22, 111, 28];
         $iheaders = [$str('questionno'), $str('markedanswer'), $str('answerresult')];
-        draw_header_row($pdf, $icols, $iheaders);
+        block_scormreport_draw_header_row($pdf, $icols, $iheaders);
 
         $pdf->SetFont('helvetica', '', 7);
         $qn = 0;
@@ -322,16 +322,16 @@ if ($hasany) {
             }
             $intercells = [
                 ['w' => $icols[0], 'text' => $qn, 'align' => 'C'],
-                ['w' => $icols[1], 'text' => scormreport_display_response($inter), 'align' => 'L'],
+                ['w' => $icols[1], 'text' => block_scormreport_display_response($inter), 'align' => 'L'],
                 ['w' => $icols[2], 'text' => $reslabel, 'align' => 'C'],
             ];
             $pdf->SetFillColor($ifill ? 245 : 255, $ifill ? 248 : 255, $ifill ? 252 : 255);
-            if (!draw_wrapped_row($pdf, $intercells, $ifill)) {
+            if (!block_scormreport_draw_wrapped_row($pdf, $intercells, $ifill)) {
                 $pdf->AddPage();
-                draw_header_row($pdf, $icols, $iheaders);
+                block_scormreport_draw_header_row($pdf, $icols, $iheaders);
                 $pdf->SetFont('helvetica', '', 7);
                 $pdf->SetFillColor($ifill ? 245 : 255, $ifill ? 248 : 255, $ifill ? 252 : 255);
-                draw_wrapped_row($pdf, $intercells, $ifill);
+                block_scormreport_draw_wrapped_row($pdf, $intercells, $ifill);
             }
             $ifill = !$ifill;
         }

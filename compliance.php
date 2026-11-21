@@ -157,7 +157,7 @@ foreach ($courses as $c) {
     if (!$cctx) continue;
 
     try {
-        $rd = scormreport_get_data($c->id, 0, 0, $cctx, $c, $DB, $CFG);
+        $rd = block_scormreport_get_data($c->id, 0, 0, $cctx, $c, $DB, $CFG);
     } catch (\Exception $e) {
         continue;
     }
@@ -178,7 +178,7 @@ $deadline_tolerance = max(0, min(100, $deadline_tolerance));
             $noapto++;
         }
         // Deadline risk
-        $dl = scormreport_calc_deadline_status($pct, $c->startdate ?? 0, $c->enddate ?? 0, $deadline_tolerance);
+        $dl = block_scormreport_calc_deadline_status($pct, $c->startdate ?? 0, $c->enddate ?? 0, $deadline_tolerance);
         if ($dl['status'] === 'atrisk' || $dl['status'] === 'finished') {
             $risk++;
         }

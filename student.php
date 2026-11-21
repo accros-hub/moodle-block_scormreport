@@ -15,7 +15,7 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 /**
  * Student personal SCORM report.
- * Uses scormreport_get_data() from lib_report.php for all calculations.
+ * Uses block_scormreport_get_data() from lib_report.php for all calculations.
  *
  * @package    block_scormreport
  * @copyright  2026 Accros Business Solutions
@@ -44,7 +44,7 @@ require_capability('block/scormreport:viewownreport', $context);
 // License check: courses not covered by the license show the locked page.
 require_once($CFG->dirroot . '/blocks/scormreport/classes/license.php');
 if (!\block_scormreport\license::course_allowed($course)) {
-    scormreport_show_locked_page($PAGE, $OUTPUT, $course, $course->id);
+    block_scormreport_show_locked_page($PAGE, $OUTPUT, $course, $course->id);
 }
 
 $userid = $USER->id;
@@ -59,7 +59,7 @@ foreach ($modinfo->get_instances_of('scorm') as $cminfo) {
 }
 
 // Get data from lib_report.php
-$reportdata  = scormreport_get_data($courseid, $userid, 0, $context, $course, $DB, $CFG);
+$reportdata  = block_scormreport_get_data($courseid, $userid, 0, $context, $course, $DB, $CFG);
 $coursehours = $reportdata['coursehours'];
 
 // Keep only SCORMs visible to the student
@@ -76,8 +76,8 @@ foreach ($detaildata_all as $row) {
         }
         if (!isset($row['passedscos'])) {
             $row['passedscos'] = $row['multisco']
-                ? count(array_filter($row['scos'], fn($s) => scormreport_is_passed($s['status'])))
-                : (scormreport_is_passed($row['status']) ? 1 : 0);
+                ? count(array_filter($row['scos'], fn($s) => block_scormreport_is_passed($s['status'])))
+                : (block_scormreport_is_passed($row['status']) ? 1 : 0);
         }
         $detaildata[] = $row;
     }
@@ -113,11 +113,11 @@ foreach ($detaildata as $row) {
         if ($row['multisco'] && !empty($row['scos'])) {
             foreach ($row['scos'] as $sco) {
                 if ($sco['status'] !== 'notattempted') $seen++;
-                if (scormreport_is_passed($sco['status'])) $passed++;
+                if (block_scormreport_is_passed($sco['status'])) $passed++;
             }
         } else {
             $seen++;
-            if (scormreport_is_passed($row['status'])) $passed++;
+            if (block_scormreport_is_passed($row['status'])) $passed++;
         }
     } else {
         // Multi-SCO not attempted: SCOs already counted in totalscorms
@@ -291,7 +291,7 @@ if (empty($detaildata)) {
         <tbody>
         <tr class="table-primary font-weight-bold">
             <td><strong>' . get_string('allscorms', 'block_scormreport') . '</strong></td>
-            <td class="text-center font-monospace"><strong>' . scormreport_hms($totalseconds) . '</strong></td>
+            <td class="text-center font-monospace"><strong>' . block_scormreport_hms($totalseconds) . '</strong></td>
             <td class="text-center"><strong>' . $sumpcttotal_str . '</strong></td>
             <td class="text-center"><strong>' . ($notamedia !== '-' ? $notamedia : '-') . '</strong></td>
             <td class="text-center"></td>
@@ -302,7 +302,7 @@ if (empty($detaildata)) {
     $srowindex = 0;
     foreach ($detaildata as $row) {
         $srowindex++;
-        $badgeinfo = scormreport_get_badge_info($row['status']);
+        $badgeinfo = block_scormreport_get_badge_info($row['status']);
         $badge = $badgeinfo['badge'];
         $label = $badgeinfo['label'];
 
@@ -354,12 +354,12 @@ if (empty($detaildata)) {
                     <tbody>';
 
             foreach ($row['scos'] as $sco) {
-                $scobadge = scormreport_get_badge_info($sco['status']);
+                $scobadge = block_scormreport_get_badge_info($sco['status']);
                 $sb = $scobadge['badge'];
                 $sl = $scobadge['label'];
                 echo '<tr>
                     <td class="sco-cell-name">' . htmlspecialchars($sco['title']) . '</td>
-                    <td class="sco-cell-mono">' . scormreport_hms($sco['seconds']) . '</td>
+                    <td class="sco-cell-mono">' . block_scormreport_hms($sco['seconds']) . '</td>
                     <td style="text-align:center;">' . (($sco['score'] !== false) ? $sco['score'] : '-') . '</td>
                     <td style="text-align:center;"><span class="badge ' . $sb . '">' . $sl . '</span></td>
                     <td>' . $sco['firstaccess'] . '</td>

@@ -36,8 +36,8 @@ require_login($course);
 require_capability('block/scormreport:viewreports', $context);
 
 if (!\block_scormreport\license::course_allowed($course)) {
-    scormreport_show_locked_page($PAGE, $OUTPUT, $course, $courseid);
-    // scormreport_show_locked_page() calls exit.
+    block_scormreport_show_locked_page($PAGE, $OUTPUT, $course, $courseid);
+    // block_scormreport_show_locked_page() calls exit.
 }
 
 $canexport = has_capability('block/scormreport:export', $context);
@@ -49,9 +49,9 @@ $PAGE->set_title(get_string('tutoractivity', 'block_scormreport'));
 $PAGE->set_heading($course->fullname . ' — ' . get_string('tutoractivity', 'block_scormreport'));
 $PAGE->add_body_class('block_scormreport');
 
-$tutors = scormreport_get_course_tutors($context);
+$tutors = block_scormreport_get_course_tutors($context);
 // Connections per day (a Moodle login or 30 minutes without activity starts a new one).
-$activity = $tutors ? scormreport_get_tutor_daily_activity($courseid, array_keys($tutors)) : [];
+$activity = $tutors ? block_scormreport_get_tutor_daily_activity($courseid, array_keys($tutors)) : [];
 
 echo $OUTPUT->header();
 

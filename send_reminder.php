@@ -63,7 +63,7 @@ $str = function($key, $a = null) { return get_string($key, 'block_scormreport', 
 // ─── Data ────────────────────────────────────────────────────────────────────
 require_once($CFG->dirroot . '/blocks/scormreport/lib_report.php');
 
-$reportdata = scormreport_get_data($courseid, 0, 0, $context, $course, $DB, $CFG);
+$reportdata = block_scormreport_get_data($courseid, 0, 0, $context, $course, $DB, $CFG);
 $globaldata = $reportdata['globaldata'];
 
 // Only filter if a percentage was selected

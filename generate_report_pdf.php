@@ -44,7 +44,7 @@ require_once($CFG->dirroot . '/blocks/scormreport/lib_report.php');
 $str = function($key, $a = null) { return get_string($key, 'block_scormreport', $a); };
 
 // ─── Data ────────────────────────────────────────────────────────────────────
-$reportdata = scormreport_get_data($courseid, $userid, 0, $context, $course, $DB, $CFG);
+$reportdata = block_scormreport_get_data($courseid, $userid, 0, $context, $course, $DB, $CFG);
 $students    = $reportdata['students'];
 $globaldata  = $reportdata['globaldata'];
 $detaildata  = $reportdata['detaildata'];
@@ -128,7 +128,7 @@ $pdf->setFooterFont(['helvetica', '', 8]);
 $pdf->setFooterData([0, 73, 110], [255, 255, 255]);
 
 // ─── Header function ─────────────────────────────────────────────────────────
-function draw_header($pdf, $course, $startdate, $enddate, $coursehours, $logopath, $str) {
+function block_scormreport_draw_header($pdf, $course, $startdate, $enddate, $coursehours, $logopath, $str) {
     $pw = $pdf->getPageWidth();
 
     $pdf->SetFillColor(0, 73, 110);
@@ -160,7 +160,7 @@ function draw_header($pdf, $course, $startdate, $enddate, $coursehours, $logopat
 }
 
 // ─── Table header function ───────────────────────────────────────────────────
-function draw_table_header($pdf, $isdetail, $str) {
+function block_scormreport_draw_table_header($pdf, $isdetail, $str) {
     $pdf->SetFillColor(0, 73, 110);
     $pdf->SetTextColor(255, 255, 255);
     $pdf->SetFont('helvetica', 'B', 8);
@@ -194,7 +194,7 @@ function draw_table_header($pdf, $isdetail, $str) {
  * @param bool $fill Alternate row fill
  * @param float $minh Minimum row height
  */
-function draw_row($pdf, array $cells, bool $fill = false, float $minh = 6) {
+function block_scormreport_draw_row($pdf, array $cells, bool $fill = false, float $minh = 6) {
     $pdf->SetFont('helvetica', '', 7);
     $pdf->SetFillColor($fill ? 235 : 255, $fill ? 245 : 255, $fill ? 251 : 255);
 
@@ -235,7 +235,7 @@ if ($userid > 0) {
     $userdetail = array_filter($detaildata, fn($r) => $r['userid'] == $userid);
 
     $pdf->AddPage();
-    draw_header($pdf, $course, $startdate, $enddate, $coursehours, $logopath, $str);
+    block_scormreport_draw_header($pdf, $course, $startdate, $enddate, $coursehours, $logopath, $str);
 
     $pdf->SetFont('helvetica', 'B', 10);
     $pdf->SetFillColor(235, 245, 251);
@@ -245,12 +245,12 @@ if ($userid > 0) {
     $pdf->Cell(0, 8, $str('studentlabel', $a), 1, 1, 'L', true);
     $pdf->Ln(3);
 
-    draw_table_header($pdf, true, $str);
+    block_scormreport_draw_table_header($pdf, true, $str);
 
     $fill = false;
     foreach ($userdetail as $row) {
-        $badgeinfo = scormreport_get_badge_info($row['status']);
-        scormreport_pdf_draw_paginated_row($pdf, [
+        $badgeinfo = block_scormreport_get_badge_info($row['status']);
+        block_scormreport_pdf_draw_paginated_row($pdf, [
             ["w" => 50, "text" => fullname($targetuser), "align" => "L"],
             ["w" => 55, "text" => $row["scormname"], "align" => "L"],
             ["w" => 25, "text" => $row["timescorm"], "align" => "C"],
@@ -260,8 +260,8 @@ if ($userid > 0) {
             ["w" => 37, "text" => $row["lastaccess"], "align" => "C"],
         ], function() use ($pdf, $course, $startdate, $enddate, $coursehours, $logopath, $str) {
             $pdf->AddPage();
-            draw_header($pdf, $course, $startdate, $enddate, $coursehours, $logopath, $str);
-            draw_table_header($pdf, true, $str);
+            block_scormreport_draw_header($pdf, $course, $startdate, $enddate, $coursehours, $logopath, $str);
+            block_scormreport_draw_table_header($pdf, true, $str);
         }, $fill);
         $fill = !$fill;
     }
@@ -271,7 +271,7 @@ if ($userid > 0) {
     // Full PDF
     // ═══════════════════════════════════════════════════════════════════════
     $pdf->AddPage();
-    draw_header($pdf, $course, $startdate, $enddate, $coursehours, $logopath, $str);
+    block_scormreport_draw_header($pdf, $course, $startdate, $enddate, $coursehours, $logopath, $str);
 
     $pdf->SetFont('helvetica', 'B', 9);
     $pdf->SetFillColor(235, 245, 251);
@@ -322,7 +322,7 @@ if ($userid > 0) {
     foreach ($globaldata as $row) {
         $pspct = (float)rtrim($row['pctsuperados'], '%');
         $apto  = $pspct >= $apt_threshold ? $str('apt') : $str('notapt');
-        $dlstatus = scormreport_calc_deadline_status($pspct, $course->startdate ?? 0, $course->enddate ?? 0, $deadline_tolerance);
+        $dlstatus = block_scormreport_calc_deadline_status($pspct, $course->startdate ?? 0, $course->enddate ?? 0, $deadline_tolerance);
 
         // Build the row cells matching the active columns.
         $cells = [['w' => $studentw, 'text' => $row['studentname'], 'align' => 'L']];
@@ -338,9 +338,9 @@ if ($userid > 0) {
             $cells[] = ['w' => $w, 'text' => $text, 'align' => ($ck === 'email' || $ck === 'company') ? 'L' : 'C'];
         }
 
-        scormreport_pdf_draw_paginated_row($pdf, $cells, function() use ($pdf, $course, $startdate, $enddate, $coursehours, $logopath, $str, $draw_summary_header) {
+        block_scormreport_pdf_draw_paginated_row($pdf, $cells, function() use ($pdf, $course, $startdate, $enddate, $coursehours, $logopath, $str, $draw_summary_header) {
             $pdf->AddPage();
-            draw_header($pdf, $course, $startdate, $enddate, $coursehours, $logopath, $str);
+            block_scormreport_draw_header($pdf, $course, $startdate, $enddate, $coursehours, $logopath, $str);
             $draw_summary_header();
         }, $fill);
         $fill = !$fill;
@@ -350,7 +350,7 @@ if ($userid > 0) {
 // ── SCO matrix (student x SCORM) ──
 if (!$userid) {
     $pdf->AddPage();
-    draw_header($pdf, $course, $startdate, $enddate, $coursehours, $logopath, $str);
+    block_scormreport_draw_header($pdf, $course, $startdate, $enddate, $coursehours, $logopath, $str);
 
     $pdf->SetFont('helvetica', 'B', 11);
     $pdf->Cell(0, 8, $str('topicscolumn') . ' — ' . $str('reporttitle'), 0, 1, 'L');
@@ -373,8 +373,8 @@ if (!$userid) {
     foreach ($globaldata as $row) {
         if (empty($row['scormdetails'])) continue;
         foreach ($row['scormdetails'] as $sd) {
-            $badgeinfo = scormreport_get_badge_info($sd['status']);
-            scormreport_pdf_draw_paginated_row($pdf, [
+            $badgeinfo = block_scormreport_get_badge_info($sd['status']);
+            block_scormreport_pdf_draw_paginated_row($pdf, [
                 ["w" => 40, "text" => $row["studentname"], "align" => "L"],
                 ["w" => 55, "text" => $sd["scormname"], "align" => "L"],
                 ["w" => 20, "text" => $sd["timescorm"], "align" => "C"],
@@ -384,7 +384,7 @@ if (!$userid) {
                 ["w" => 32, "text" => $sd["lastaccess"], "align" => "C"],
             ], function() use ($pdf, $course, $startdate, $enddate, $coursehours, $logopath, $str) {
                 $pdf->AddPage();
-                draw_header($pdf, $course, $startdate, $enddate, $coursehours, $logopath, $str);
+                block_scormreport_draw_header($pdf, $course, $startdate, $enddate, $coursehours, $logopath, $str);
                 $pdf->SetFont("helvetica", "B", 7);
                 $pdf->SetFillColor(0, 115, 170);
                 $pdf->SetTextColor(255, 255, 255);

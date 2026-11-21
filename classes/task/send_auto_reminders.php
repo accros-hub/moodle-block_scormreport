@@ -87,7 +87,7 @@ class send_auto_reminders extends \core\task\scheduled_task {
             if (!$context) continue;
 
             try {
-                $reportdata = scormreport_get_data($course->id, 0, 0, $context, $course, $DB, $CFG);
+                $reportdata = block_scormreport_get_data($course->id, 0, 0, $context, $course, $DB, $CFG);
             } catch (\Exception $e) {
                 mtrace("  Error in course {$course->id}: " . $e->getMessage());
                 continue;
