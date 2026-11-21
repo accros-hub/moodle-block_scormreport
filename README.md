@@ -1,7 +1,7 @@
 # Course Report — SCORM reporting for Moodle
 
 **Component:** `block_scormreport`
-**Release:** `1.12.7-v173.1`
+**Release:** `1.12.8-v174`
 **Supported Moodle versions:** 5.0, 5.1, 5.2 and 5.3
 **License:** GNU GPL v3 or later
 **Maintainer:** Accros Business Solutions
